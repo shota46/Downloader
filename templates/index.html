@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Downloader</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Downloader</h1>
+        <nav class="tabs">
+            <button class="tab active" data-tab="youtube">YouTube</button>
+            <button class="tab" data-tab="ytdl">YT Advanced</button>
+            <button class="tab" data-tab="anime">Anime</button>
+            <button class="tab" data-tab="vault">Vault</button>
+            <button class="tab" data-tab="downloads">Downloads</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- YouTube Tab (Simple - app.py direct) -->
+        <section id="youtube" class="tab-content active">
+            <div class="input-group">
+                <input type="text" id="yt-url" placeholder="YouTube URLを貼り付け...">
+                <button id="yt-fetch" class="btn-primary">取得</button>
+            </div>
+
+            <div id="yt-loading" class="loading hidden">読み込み中...</div>
+            <div id="yt-error" class="error hidden"></div>
+
+            <div id="yt-preview" class="hidden">
+                <div class="video-card">
+                    <img id="yt-thumb" src="" alt="thumbnail">
+                    <div class="video-info">
+                        <h3 id="yt-title"></h3>
+                        <p id="yt-uploader"></p>
+                        <p id="yt-duration"></p>
+                    </div>
+                </div>
+
+                <div class="quality-selector">
+                    <label><input type="radio" name="quality" value="best" checked> Best</label>
+                    <label><input type="radio" name="quality" value="1080"> 1080p</label>
+                    <label><input type="radio" name="quality" value="720"> 720p</label>
+                    <label><input type="radio" name="quality" value="480"> 480p</label>
+                    <label><input type="radio" name="quality" value="360"> 360p</label>
+                    <label><input type="radio" name="quality" value="audio"> Audio Only</label>
+                </div>
+
+                <button id="yt-download" class="btn-primary btn-download">ダウンロード</button>
+            </div>
+
+            <div id="yt-progress" class="progress-container hidden">
+                <div class="progress-bar"><div class="progress-fill" id="yt-progress-fill"></div></div>
+                <span class="progress-text" id="yt-progress-text">0%</span>
+            </div>
+
+            <div id="yt-complete" class="hidden">
+                <a id="yt-download-link" class="btn-success" href="#" download>ファイルをダウンロード</a>
+            </div>
+        </section>
+
+        <!-- YT Advanced Tab (server.py via WebSocket) -->
+        <section id="ytdl" class="tab-content hidden">
+            <div class="input-group">
+                <input type="text" id="ytdl-url" placeholder="YouTube URLを貼り付け...">
+                <button id="ytdl-fetch" class="btn-primary">情報取得</button>
+            </div>
+
+            <div id="ytdl-loading" class="loading hidden">読み込み中...</div>
+            <div id="ytdl-error" class="error hidden"></div>
+
+            <div id="ytdl-preview" class="hidden">
+                <div class="video-card">
+                    <img id="ytdl-thumb" src="" alt="thumbnail">
+                    <div class="video-info">
+                        <h3 id="ytdl-title"></h3>
+                        <p id="ytdl-channel"></p>
+                        <p id="ytdl-duration"></p>
+                        <p id="ytdl-date" class="text-muted"></p>
+                    </div>
+                </div>
+
+                <div class="quality-selector">
+                    <label><input type="radio" name="ytdl-quality" value="1080p" checked> 1080p</label>
+                    <label><input type="radio" name="ytdl-quality" value="720p"> 720p</label>
+                    <label><input type="radio" name="ytdl-quality" value="480p"> 480p</label>
+                    <label><input type="radio" name="ytdl-quality" value="360p"> 360p</label>
+                    <label><input type="radio" name="ytdl-quality" value="mp3"> MP3</label>
+                    <label><input type="radio" name="ytdl-quality" value="m4a"> M4A</label>
+                </div>
+
+                <div class="ytdl-options">
+                    <label><input type="checkbox" id="ytdl-embed-meta" checked> メタデータ埋め込み</label>
+                    <label><input type="checkbox" id="ytdl-embed-thumb" checked> サムネイル埋め込み</label>
+                </div>
+
+                <button id="ytdl-download" class="btn-primary btn-download">ダウンロード開始</button>
+            </div>
+
+            <!-- Queue -->
+            <div id="ytdl-queue" class="queue-section">
+                <h3>ダウンロードキュー</h3>
+                <div id="ytdl-queue-list"></div>
+            </div>
+
+            <!-- Server Status -->
+            <div id="ytdl-server-status" class="status-bar hidden">
+                <span id="ytdl-ws-status" class="ws-indicator">WS: 接続中...</span>
+                <span id="ytdl-active-count"></span>
+            </div>
+        </section>
+
+        <!-- Anime Tab -->
+        <section id="anime" class="tab-content hidden">
+            <div class="input-group">
+                <input type="text" id="anime-search-input" placeholder="アニメを検索...">
+                <button id="anime-search-btn" class="btn-primary">検索</button>
+            </div>
+
+            <div id="anime-loading" class="loading hidden">読み込み中...</div>
+            <div id="anime-error" class="error hidden"></div>
+
+            <div id="anime-results" class="anime-grid"></div>
+
+            <div id="anime-detail" class="hidden">
+                <button id="anime-back" class="btn-back">&larr; 戻る</button>
+                <div id="anime-detail-content"></div>
+                <h3>エピソード</h3>
+                <div id="anime-episodes" class="episode-grid"></div>
+            </div>
+
+            <div id="anime-stream" class="hidden">
+                <button id="anime-stream-back" class="btn-back">&larr; エピソード一覧に戻る</button>
+                <div id="anime-stream-content"></div>
+                <div id="anime-stream-progress" class="progress-container hidden">
+                    <div class="progress-bar"><div class="progress-fill" id="anime-progress-fill"></div></div>
+                    <span class="progress-text" id="anime-progress-text">0%</span>
+                </div>
+                <div id="anime-stream-complete" class="hidden">
+                    <a id="anime-download-link" class="btn-success" href="#" download>ファイルをダウンロード</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Vault Tab (anime-vault file manager) -->
+        <section id="vault" class="tab-content hidden">
+            <div class="vault-header">
+                <h2>AnimeVault ファイル管理</h2>
+                <div class="vault-actions">
+                    <button id="vault-refresh" class="btn-primary">更新</button>
+                    <button id="vault-zip-all" class="btn-primary">全ZIP</button>
+                </div>
+            </div>
+
+            <div id="vault-loading" class="loading hidden">読み込み中...</div>
+            <div id="vault-error" class="error hidden"></div>
+
+            <div id="vault-sysinfo" class="sysinfo-bar hidden">
+                <span id="vault-mem"></span>
+                <span id="vault-disk"></span>
+                <span id="vault-uptime"></span>
+            </div>
+
+            <div id="vault-file-list" class="vault-grid"></div>
+        </section>
+
+        <!-- Downloads Tab -->
+        <section id="downloads" class="tab-content hidden">
+            <h2>ダウンロード済み</h2>
+            <div id="downloads-list"></div>
+        </section>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/youtube.js"></script>
+    <script src="/static/js/youtube-advanced.js"></script>
+    <script src="/static/js/anime.js"></script>
+</body>
+</html>

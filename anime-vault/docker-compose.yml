@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  # ─────────────────────────────────────────────────────
+  #  AnimeVault Server  (port 4040)
+  # ─────────────────────────────────────────────────────
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: animevault-server
+    restart: unless-stopped
+    ports:
+      - "4040:4040"
+    volumes:
+      - anime_data:/data/anime        # 動画ファイル永続化
+    environment:
+      PORT:       "4040"
+      ANIME_DIR:  "/data/anime"
+      HIANIME_API: "${HIANIME_API:-http://hianime-api:3030}"
+      DISCORD_WEBHOOK: "${DISCORD_WEBHOOK:-}"
+    networks:
+      - animevault
+
+  # ─────────────────────────────────────────────────────
+  #  React フロントエンド  (port 5173 / 本番は 4040 から serve)
+  # ─────────────────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: animevault-client
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_DL_API: "http://localhost:4040"
+    depends_on:
+      - server
+    networks:
+      - animevault
+
+  # ─────────────────────────────────────────────────────
+  #  hianime-API  (port 3030)  ※ 別途git clone が必要
+  # ─────────────────────────────────────────────────────
+  # hianime-api:
+  #   image: node:20-alpine
+  #   working_dir: /app
+  #   command: sh -c "bun install && bun run dev"
+  #   volumes:
+  #     - ./hianime-api:/app
+  #   ports:
+  #     - "3030:3030"
+  #   networks:
+  #     - animevault
+
+volumes:
+  anime_data:
+    driver: local
+
+networks:
+  animevault:
+    driver: bridge
