@@ -24,11 +24,23 @@ os.makedirs(ANIME_DIR, exist_ok=True)
 download_tasks = {}
 
 
-# ─── Pages ───────────────────────────────────────────────────────────────────
+# ─── Frontend (React build) ──────────────────────────────────────────────────
+
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'dist')
+
 
 @app.route('/')
 def index():
+    # Serve React build if available, fallback to vanilla template
+    react_index = os.path.join(FRONTEND_DIR, 'index.html')
+    if os.path.exists(react_index):
+        return send_from_directory(FRONTEND_DIR, 'index.html')
     return render_template('index.html')
+
+
+@app.route('/assets/<path:filename>')
+def serve_react_assets(filename):
+    return send_from_directory(os.path.join(FRONTEND_DIR, 'assets'), filename)
 
 
 # ─── YouTube ─────────────────────────────────────────────────────────────────

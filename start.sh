@@ -16,6 +16,13 @@ python3 server.py &
 echo "Starting app.py (Flask :8080)..."
 python3 app.py &
 
+# Dev mode: start Vite dev server
+if [ "$1" = "dev" ]; then
+  echo "Starting Vite dev server (:5173)..."
+  cd frontend && npm run dev &
+  cd ..
+fi
+
 echo ""
 echo "╔══════════════════════════════════════════════╗"
 echo "║   All services started                       ║"
@@ -23,6 +30,9 @@ echo "║   Flask Gateway:  http://localhost:8080       ║"
 echo "║   YTDL Server:    http://localhost:8765       ║"
 echo "║   AnimeVault:     http://localhost:4040       ║"
 echo "║   hianime-API:    http://localhost:3030       ║"
+if [ "$1" = "dev" ]; then
+echo "║   Vite Dev:       http://localhost:5173       ║"
+fi
 echo "╚══════════════════════════════════════════════╝"
 
 wait
