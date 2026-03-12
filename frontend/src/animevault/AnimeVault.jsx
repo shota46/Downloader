@@ -1051,11 +1051,18 @@ export default function AnimeVault() {
     }
     setQueue(q => q.map(i => i.id===itemId ? {...i, status:"active", speed:"ストリーム取得中…"} : i));
     try {
-      const streamRes = await fetch(`/api/anime/stream?id=${encodeURIComponent(episodeId)}&server=hd-1&type=${audioType||"sub"}`);
-      const streamData = await streamRes.json();
-      // data may be a single object or array depending on hianime-API version
-      const sd = Array.isArray(streamData?.data) ? streamData.data[0] : streamData?.data;
-      const hlsUrl = sd?.link?.file || sd?.sources?.[0]?.url;
+      // hd-2 (netmagcdn) はffmpegでDL可能、hd-1 (megacloud系) は403になるためhd-2優先
+      const servers = ["hd-2", "hd-1"];
+      let hlsUrl = null, sd = null;
+      for (const srv of servers) {
+        try {
+          const streamRes = await fetch(`/api/anime/stream?id=${encodeURIComponent(episodeId)}&server=${srv}&type=${audioType||"sub"}`);
+          const streamData = await streamRes.json();
+          sd = Array.isArray(streamData?.data) ? streamData.data[0] : streamData?.data;
+          const url = sd?.link?.file || sd?.sources?.[0]?.url;
+          if (url) { hlsUrl = url; break; }
+        } catch {}
+      }
       if (!hlsUrl) {
         setQueue(q => q.map(i => i.id===itemId ? {...i, status:"error", speed:"ストリームURL取得失敗"} : i));
         toast(`ストリーム取得失敗: ${animeTitle} ${epLabel}`, "error");

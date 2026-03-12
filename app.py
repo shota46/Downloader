@@ -267,7 +267,12 @@ def _do_anime_download(task_id, hls_url, output_path, filename, referer):
         process = subprocess.Popen(cmd, stderr=subprocess.PIPE, universal_newlines=True)
 
         duration = None
+        last_lines = []
         for line in process.stderr:
+            last_lines.append(line.rstrip())
+            if len(last_lines) > 20:
+                last_lines.pop(0)
+
             dur_match = re.search(r'Duration:\s*(\d+):(\d+):(\d+)', line)
             if dur_match:
                 h, m, s = int(dur_match.group(1)), int(dur_match.group(2)), int(dur_match.group(3))
@@ -286,8 +291,9 @@ def _do_anime_download(task_id, hls_url, output_path, filename, referer):
             download_tasks[task_id]['filename'] = filename
             download_tasks[task_id]['progress'] = 100
         else:
+            err_detail = '\n'.join(last_lines[-5:])
             download_tasks[task_id]['status'] = 'error'
-            download_tasks[task_id]['error'] = 'ffmpeg exited with non-zero status'
+            download_tasks[task_id]['error'] = f'ffmpeg exit {process.returncode}: {err_detail}'
     except Exception as e:
         download_tasks[task_id]['status'] = 'error'
         download_tasks[task_id]['error'] = str(e)
