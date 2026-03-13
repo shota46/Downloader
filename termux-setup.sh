@@ -3,7 +3,7 @@
 #  Downloader - Termux ワンタッチセットアップ
 #  コピペするだけで全部動きます (root化不要)
 # ============================================================
-set -e
+set -eo pipefail 2>/dev/null || true
 
 G='\033[0;32m'; C='\033[0;36m'; R='\033[0;31m'; N='\033[0m'
 ok()  { echo -e "${G}✓${N} $1"; }
@@ -24,7 +24,6 @@ ok "システムパッケージ完了"
 
 # ── 2. Python パッケージ ──
 info "Python パッケージをインストール中..."
-pip install --upgrade pip
 pip install flask requests yt-dlp fastapi uvicorn aiofiles httpx psutil mutagen
 ok "Python パッケージ完了"
 
