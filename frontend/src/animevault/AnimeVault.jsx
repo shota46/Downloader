@@ -328,7 +328,7 @@ const STYLE = `
 }
 .cb:checked { background:var(--cyan); border-color:var(--cyan); }
 .cb:checked::after {
-  content:'✓'; position:absolute; font-size:8px; color:var(--c0);
+  content:'+'; position:absolute; font-size:8px; color:var(--c0);
   top:50%; left:50%; transform:translate(-50%,-53%); font-weight:700;
 }
 
@@ -1062,7 +1062,7 @@ function ConfirmDialog({ message, detail, onConfirm, onCancel }) {
   return (
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="modal-box" style={{ maxWidth:420, padding:24 }}>
-        <div style={{ fontSize:15, fontWeight:600, marginBottom:8 }}>⚠ {message}</div>
+        <div style={{ fontSize:15, fontWeight:600, marginBottom:8 }}>! {message}</div>
         {detail && <div style={{ fontSize:12, color:"var(--dim)", marginBottom:18, lineHeight:1.6 }}>{detail}</div>}
         <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
           <button className="btn sm" onClick={onCancel}>キャンセル</button>
@@ -1085,7 +1085,7 @@ function useToast() {
   return { toasts, add, dismiss };
 }
 
-function Spinner() { return <span className="spin">⟳</span>; }
+function Spinner() { return <span className="spin">~</span>; }
 
 // ══════════════════════════════════════════════════════════════════
 //  MAIN APP
@@ -1270,8 +1270,8 @@ export default function AnimeVault() {
             clearInterval(pollId);
             dlPollsRef.current = dlPollsRef.current.filter(id => id !== pollId);
             setQueue(q => q.map(i => i.id===itemId ? {...i, status:"done", progress:100, speed:"完了"} : i));
-            setLogs(l => [{ time: logNow(), level:"INFO", msg:`✓ DL完了: ${animeTitle} ${epLabel}` }, ...l]);
-            toast(`✓ 完了: ${animeTitle} ${epLabel}`, "info");
+            setLogs(l => [{ time: logNow(), level:"INFO", msg:`+ DL完了: ${animeTitle} ${epLabel}` }, ...l]);
+            toast(`+ 完了: ${animeTitle} ${epLabel}`, "info");
           } else if (p.status === "error") {
             clearInterval(pollId);
             dlPollsRef.current = dlPollsRef.current.filter(id => id !== pollId);
@@ -1307,8 +1307,8 @@ export default function AnimeVault() {
                 ["home",    "⌂", "ダッシュボード"],
                 ["browse",  "◎", "アニメ検索"],
                 ["queue",   "↓", "ダウンロードキュー",  activeCount+queuedCount > 0 ? activeCount+queuedCount : null],
-                ["files",   "▤", "ファイル管理"],
-                ["folders", "⊟", "フォルダ管理"],
+                ["files",   "=", "ファイル管理"],
+                ["folders", "-", "フォルダ管理"],
               ].map(([id,ico,label,badge]) => (
                 <div key={id} className={`nav-item ${page===id?"active":""}`} onClick={()=>setPage(id)}>
                   <span className="nav-ico">{ico}</span>
@@ -1321,7 +1321,7 @@ export default function AnimeVault() {
               <div className="nav-group-label">システム</div>
               {[
                 ["logs",     "◈", "ログ", logs.filter(l=>l.level==="ERROR").length || null],
-                ["settings", "⚙", "設定"],
+                ["settings", "*", "設定"],
               ].map(([id,ico,label,badge]) => (
                 <div key={id} className={`nav-item ${page===id?"active":""}`} onClick={()=>setPage(id)}>
                   <span className="nav-ico">{ico}</span>
@@ -1370,14 +1370,14 @@ export default function AnimeVault() {
             </div>
             <div className="api-url-pill">/api proxy</div>
             <div className="topbar-actions">
-              {page==="queue" && <button className="btn primary sm" onClick={()=>toast("キュー全体を開始しました","info")}>▶ 全て開始</button>}
-              {page==="queue" && <button className="btn sm" onClick={()=>toast("全キューを一時停止","warn")}>⏸ 一時停止</button>}
-              {page==="files" && <button className="btn primary sm" onClick={refreshFiles}>{filesLoading ? <Spinner/> : "⟳"} 更新</button>}
-              {page==="files" && <button className="zip-btn" onClick={()=>{ setZipTarget({files,label:"全ファイル"}); setShowZip(true); }}>🗜 ZIP一括DL</button>}
-              {page==="files" && <button className="meta-btn" onClick={()=>{ setMetaTarget({files}); setShowMeta(true); }}>🏷 メタデータ編集</button>}
-              {page==="folders" && <button className="zip-btn" onClick={()=>{ setZipTarget({files,label:"全フォルダ"}); setShowZip(true); }}>🗜 ZIP一括DL</button>}
-              {page==="folders" && <button className="meta-btn" onClick={()=>{ setMetaTarget({files}); setShowMeta(true); }}>🏷 メタデータ編集</button>}
-              {page==="logs"  && <button className="btn danger sm" onClick={()=>setLogs([])}>✕ クリア</button>}
+              {page==="queue" && <button className="btn primary sm" onClick={()=>toast("キュー全体を開始しました","info")}>&gt; 全て開始</button>}
+              {page==="queue" && <button className="btn sm" onClick={()=>toast("全キューを一時停止","warn")}>|| 一時停止</button>}
+              {page==="files" && <button className="btn primary sm" onClick={refreshFiles}>{filesLoading ? <Spinner/> : "~"} 更新</button>}
+              {page==="files" && <button className="zip-btn" onClick={()=>{ setZipTarget({files,label:"全ファイル"}); setShowZip(true); }}>ZIP一括DL</button>}
+              {page==="files" && <button className="meta-btn" onClick={()=>{ setMetaTarget({files}); setShowMeta(true); }}># メタデータ編集</button>}
+              {page==="folders" && <button className="zip-btn" onClick={()=>{ setZipTarget({files,label:"全フォルダ"}); setShowZip(true); }}>ZIP一括DL</button>}
+              {page==="folders" && <button className="meta-btn" onClick={()=>{ setMetaTarget({files}); setShowMeta(true); }}># メタデータ編集</button>}
+              {page==="logs"  && <button className="btn danger sm" onClick={()=>setLogs([])}>x クリア</button>}
             </div>
           </header>
 
@@ -1445,9 +1445,9 @@ export default function AnimeVault() {
         <div className="toast-wrap">
           {toasts.map(t => (
             <div key={t.id} className={`toast ${t.type==="error"?"err":t.type==="warn"?"warn":""}`}>
-              <span style={{flex:1}}>{t.type==="error"?"✕ ":t.type==="warn"?"⚠ ":"✓ "}{t.msg}</span>
+              <span style={{flex:1}}>{t.type==="error"?"x ":t.type==="warn"?"! ":"+ "}{t.msg}</span>
               {t.action && <button className="toast-action" onClick={()=>{t.action.onClick();dismissToast(t.id);}}>{t.action.label}</button>}
-              <button className="toast-close" onClick={()=>dismissToast(t.id)}>✕</button>
+              <button className="toast-close" onClick={()=>dismissToast(t.id)}>x</button>
             </div>
           ))}
         </div>
@@ -1492,11 +1492,11 @@ function HomePage({ queue, files, logs, setPage }) {
         {/* Active downloads */}
         <div className="card">
           <div className="card-head">
-            <span>⬇ アクティブダウンロード</span>
+            <span>v アクティブダウンロード</span>
             <button className="btn sm" onClick={()=>setPage("queue")}>全て見る →</button>
           </div>
           {active.length === 0 ? (
-            <div className="empty"><div className="empty-icon">⬇</div>ダウンロード中なし</div>
+            <div className="empty"><div className="empty-icon">v</div>ダウンロード中なし</div>
           ) : (
             <div style={{padding:"10px 0"}}>
               {active.map(item => (
@@ -1540,7 +1540,7 @@ function HomePage({ queue, files, logs, setPage }) {
       {/* Recent files */}
       <div style={{marginTop:14}} className="card">
         <div className="card-head">
-          <span>▤ 最近のダウンロードファイル</span>
+          <span>= 最近のダウンロードファイル</span>
           <button className="btn sm" onClick={()=>setPage("files")}>全て見る →</button>
         </div>
         <div className="file-head">
@@ -1549,13 +1549,13 @@ function HomePage({ queue, files, logs, setPage }) {
         </div>
         {files.slice(0,5).map((f,i) => (
           <div key={i} className="file-row">
-            <span style={{color:"var(--cyan)",fontSize:13}}>▶</span>
+            <span style={{color:"var(--cyan)",fontSize:13}}>&gt;</span>
             <span className="file-name">{f.name}</span>
             <span className="file-series">{f.series}</span>
             <span className="file-size">{f.size}</span>
             <span className="file-date">{f.date}</span>
             <div className="file-actions">
-              <button className="btn sm">▶</button>
+              <button className="btn sm">&gt;</button>
             </div>
           </div>
         ))}
@@ -1678,14 +1678,14 @@ function BrowsePage({ onDetail, toast }) {
           onKeyDown={e => e.key==="Enter" && handleUrlSubmit()}
         />
         <button className="btn sm" onClick={pasteClipboard} title="貼り付け"
-          style={{padding:"5px 10px",fontSize:14,background:"var(--c3)",border:"1px solid var(--border2)",borderRadius:"var(--r)",cursor:"pointer",color:"var(--txt)"}}>📋</button>
+          style={{padding:"5px 10px",fontSize:14,background:"var(--c3)",border:"1px solid var(--border2)",borderRadius:"var(--r)",cursor:"pointer",color:"var(--txt)"}}>=</button>
         <button className="btn primary" onClick={handleUrlSubmit}>
           {loading ? <Spinner/> : isUrl ? "開く" : "検索"}
         </button>
       </div>
 
       <div className="tab-bar">
-        {[["trending","🔥 トレンド"],["search","🔍 検索結果"]].map(([id,label]) => (
+        {[["trending","トレンド"],["search","検索結果"]].map(([id,label]) => (
           <div key={id} className={`tab-item ${tab===id?"active":""}`} onClick={()=>setTab(id)}>{label}</div>
         ))}
       </div>
@@ -1698,7 +1698,7 @@ function BrowsePage({ onDetail, toast }) {
 
       {!loading && displayList.length === 0 && (
         <div className="empty">
-          <div className="empty-icon">{tab==="search"?"🔍":"🔥"}</div>
+          <div className="empty-icon">{tab==="search"?"?":"*"}</div>
           {tab==="search" ? "キーワードを入力して検索" : "トレンドデータを読み込み中…"}
         </div>
       )}
@@ -1816,7 +1816,7 @@ function DetailOverlay({ data, onClose, onAddQueue, toast }) {
                 <div className="detail-title">{anime.title}</div>
                 <div className="detail-ja">{anime.japanese || anime.alternativeTitle}</div>
               </div>
-              <button className="btn sm" onClick={onClose}>✕ 閉じる</button>
+              <button className="btn sm" onClick={onClose}>x 閉じる</button>
             </div>
             <div className="detail-badges">
               {anime.type    && <span className="dbadge db-type">{anime.type}</span>}
@@ -1861,7 +1861,7 @@ function DetailOverlay({ data, onClose, onAddQueue, toast }) {
                 {epFilter && ` (${filteredEps.length}/${episodes.length})`}
               </button>
               <button className="btn primary sm" onClick={addSelected} disabled={selected.size===0}>
-                ⬇ {selected.size > 0 ? `${selected.size}話をキューに追加` : "エピソードを選択"}
+                v {selected.size > 0 ? `${selected.size}話をキューに追加` : "エピソードを選択"}
               </button>
             </div>
           </div>
@@ -1944,7 +1944,7 @@ function QueuePage({ queue, setQueue, toast }) {
         </div>
 
         {queue.length === 0 && (
-          <div className="empty"><div className="empty-icon">⬇</div>キューが空です</div>
+          <div className="empty"><div className="empty-icon">v</div>キューが空です</div>
         )}
 
         {queue.map((item, idx) => (
@@ -1967,8 +1967,8 @@ function QueuePage({ queue, setQueue, toast }) {
               <span className="queue-speed">{item.speed}</span>
               <span className="queue-eta">{item.eta}</span>
               <div style={{display:"flex",flexDirection:"column",gap:3}}>
-                <button className="btn sm" onClick={()=>moveUp(idx)} title="優先度UP">↑</button>
-                <button className="btn danger sm" onClick={()=>remove(item.id)}>✕</button>
+                <button className="btn sm" onClick={()=>moveUp(idx)} title="優先度UP">^</button>
+                <button className="btn danger sm" onClick={()=>remove(item.id)}>x</button>
               </div>
             </div>
           </div>
@@ -2092,7 +2092,7 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
       setDlProgress(p=>({...p,[f.name]:100}));
       setTimeout(()=>{
         setDlProgress(p=>{const n={...p};delete n[f.name];return n;});
-        toast(`✓ DL完了: ${f.name}`,"info");
+        toast(`+ DL完了: ${f.name}`,"info");
       },800);
     },6000);
   }
@@ -2136,7 +2136,7 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
         const epObj = epsList.find(e => e.episodeNumber === ep) || epsList[ep-1];
         if (epObj) onQueue(urlPreview.title, epObj, ep, urlQuality, urlPreview.id, urlAudio);
       }
-      toast(`${urlPreview.title} E${urlEpFrom}〜E${urlEpTo}（${count}話）をキューに追加`,"info");
+      toast(`${urlPreview.title} E${urlEpFrom}~E${urlEpTo}（${count}話）をキューに追加`,"info");
     } catch(e) { toast(`エラー: ${e.message}`,"error"); }
     setUrlPreview(null);setUrlInput("");setShowUrl(false);
   }
@@ -2157,44 +2157,44 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
           value={filter} onChange={e=>setFilter(e.target.value)}/>
         <div className="fb-view-toggle">
           <button className={`fb-view-btn ${view==="list"?"active":""}`} onClick={()=>setView("list")}>☰ リスト</button>
-          <button className={`fb-view-btn ${view==="grid"?"active":""}`} onClick={()=>setView("grid")}>⊞ グリッド</button>
+          <button className={`fb-view-btn ${view==="grid"?"active":""}`} onClick={()=>setView("grid")}># グリッド</button>
         </div>
         <button className="btn primary sm" onClick={()=>setShowUrl(v=>!v)}>
-          {showUrl?"✕ 閉じる":"⬇ URLからまとめてDL"}
+          {showUrl?"x 閉じる":"v URLからまとめてDL"}
         </button>
         <button className="zip-btn" onClick={()=>onZip({files,label:`全ファイル（${files.length}件）`})}>
-          🗜 ZIP全DL
+          ZIP全DL
         </button>
         <button className="meta-btn" onClick={()=>onMeta({files,label:"全ファイル"})}>
           ✦ メタデータ書込
         </button>
         <button className="meta-btn" onClick={()=>onMeta({files})}>
-          🏷 一括メタ編集
+          # 一括メタ編集
         </button>
         {totalSel>0 && <>
           <button className="btn primary sm" onClick={()=>{
             groups.forEach(g=>{ if(getGroupSel(g).size>0) bulkHttpDownload(g); });
-          }}>⬇ HTTP {totalSel}件</button>
+          }}>v HTTP {totalSel}件</button>
           <button className="btn sm" style={{borderColor:"rgba(167,139,250,.35)",color:"var(--purple)"}}
             onClick={()=>{
               const sel=[];
               groups.forEach(g=>{ const s=getGroupSel(g); g.files.filter(f=>s.has(f.name)).forEach(f=>sel.push(f)); });
               onSftp({files:sel,label:`選択した${totalSel}ファイル`});
-            }}>⤓ SFTP {totalSel}件</button>
+            }}>v SFTP {totalSel}件</button>
           <button className="zip-btn"
             onClick={()=>{
               const sel=[];
               groups.forEach(g=>{ const s=getGroupSel(g); g.files.filter(f=>s.has(f.name)).forEach(f=>sel.push(f)); });
               onZip({files:sel,label:`選択${totalSel}件`});
-            }}>🗜 ZIP {totalSel}件</button>
+            }}>ZIP {totalSel}件</button>
           <button className="meta-btn"
             onClick={()=>{
               const sel=[];
               groups.forEach(g=>{ const s=getGroupSel(g); g.files.filter(f=>s.has(f.name)).forEach(f=>sel.push(f)); });
               onMeta({files:sel});
-            }}>🏷 メタ編集 {totalSel}件</button>
+            }}># メタ編集 {totalSel}件</button>
           <button className="btn danger sm" onClick={()=>groups.forEach(g=>deleteSelected(g))}>
-            ✕ 削除 {totalSel}件
+            x 削除 {totalSel}件
           </button>
         </>}
       </div>
@@ -2202,7 +2202,7 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
       {/* URL Bulk-add panel */}
       {showUrl && (
         <div className="url-panel mb14">
-          <div className="url-panel-title">⬇ URLからエピソードをまとめてキューに追加</div>
+          <div className="url-panel-title">v URLからエピソードをまとめてキューに追加</div>
           <div className="url-input-row">
             <input className="search-input" style={{flex:1}}
               placeholder="hianime URL または アニメID  例: attack-on-titan-112"
@@ -2216,7 +2216,7 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
             <span className="url-ep-range-label">話数:</span>
             <input type="number" className="url-num-input" min={1} value={urlEpFrom}
               onChange={e=>setUrlEpFrom(Math.max(1,+e.target.value))}/>
-            <span className="url-ep-range-label">〜</span>
+            <span className="url-ep-range-label">~</span>
             <input type="number" className="url-num-input" min={1} value={urlEpTo}
               onChange={e=>setUrlEpTo(Math.max(urlEpFrom,+e.target.value))}/>
             <div className="quality-chips" style={{marginLeft:10}}>
@@ -2234,9 +2234,9 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
                 <span style={{color:"var(--txt)",fontWeight:600}}>{urlPreview.title}</span>
                 {urlPreview.japanese&&<span style={{color:"var(--dim)",marginLeft:8}}>{urlPreview.japanese}</span>}
               </div>
-              <div>追加予定: <span>{urlEpTo-urlEpFrom+1}</span>話 （E<span>{urlEpFrom}</span>〜E<span>{urlEpTo}</span>） ／ <span>{urlQuality}</span> ／ 合計: {urlPreview.episodes?.sub||"?"}話</div>
+              <div>追加予定: <span>{urlEpTo-urlEpFrom+1}</span>話 （E<span>{urlEpFrom}</span>~E<span>{urlEpTo}</span>） ／ <span>{urlQuality}</span> ／ 合計: {urlPreview.episodes?.sub||"?"}話</div>
               <div style={{marginTop:8,display:"flex",gap:8}}>
-                <button className="btn primary sm" onClick={handleBulkAdd}>⬇ {urlEpTo-urlEpFrom+1}話をキューに追加</button>
+                <button className="btn primary sm" onClick={handleBulkAdd}>v {urlEpTo-urlEpFrom+1}話をキューに追加</button>
                 <button className="btn sm" onClick={()=>setUrlPreview(null)}>クリア</button>
               </div>
             </div>
@@ -2257,14 +2257,14 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
               </div>
             </div>
           ))}
-          {groups.length===0&&<div className="empty" style={{gridColumn:"1/-1"}}><div className="empty-icon">⊞</div>ファイルが見つかりません</div>}
+          {groups.length===0&&<div className="empty" style={{gridColumn:"1/-1"}}><div className="empty-icon">#</div>ファイルが見つかりません</div>}
         </div>
       )}
 
       {/* List view */}
       {view==="list" && (
         <div>
-          {groups.length===0&&<div className="empty"><div className="empty-icon">▤</div>ファイルが見つかりません</div>}
+          {groups.length===0&&<div className="empty"><div className="empty-icon">=</div>ファイルが見つかりません</div>}
           {groups.map(g=>{
             const isOpen=!!expanded[g.series];
             const gSel=getGroupSel(g);
@@ -2282,7 +2282,7 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
                     <div className="ag-stat"><div className="ag-stat-val amber-txt">{groupSize(g)}</div><div className="ag-stat-lbl">合計</div></div>
                     {gSel.size>0&&<div className="ag-stat"><div className="ag-stat-val rose-txt">{gSel.size}</div><div className="ag-stat-lbl">選択</div></div>}
                   </div>
-                  <span className={`ag-chevron ${isOpen?"open":""}`}>▶</span>
+                  <span className={`ag-chevron ${isOpen?"open":""}`}>&gt;</span>
                 </div>
 
                 {isOpen && (
@@ -2295,21 +2295,21 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
                       </span>
                       <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
                         <button className="dl-http-btn" onClick={()=>bulkHttpDownload(g)}>
-                          ⬇ HTTP {gSel.size>0?`選択${gSel.size}件`:"全話"}
+                          v HTTP {gSel.size>0?`選択${gSel.size}件`:"全話"}
                         </button>
                         <button className="dl-sftp-btn"
                           onClick={()=>{
                             const targets=gSel.size>0?g.files.filter(f=>gSel.has(f.name)):g.files;
                             onSftp({files:targets,label:`${g.series}（${targets.length}話）`});
                           }}>
-                          ⤓ SFTP {gSel.size>0?`選択${gSel.size}件`:"全話"}
+                          v SFTP {gSel.size>0?`選択${gSel.size}件`:"全話"}
                         </button>
                         <button className="zip-btn"
                           onClick={()=>{
                             const targets=gSel.size>0?g.files.filter(f=>gSel.has(f.name)):g.files;
                             onZip({files:targets,label:`${g.series}（${targets.length}話）`});
                           }}>
-                          🗜 ZIP {gSel.size>0?`選択${gSel.size}件`:"全話"}
+                          ZIP {gSel.size>0?`選択${gSel.size}件`:"全話"}
                         </button>
                         <button className="meta-btn"
                           onClick={()=>{
@@ -2323,11 +2323,11 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
                             const targets=gSel.size>0?g.files.filter(f=>gSel.has(f.name)):g.files;
                             onMeta({files:targets});
                           }}>
-                          🏷 メタ編集
+                          # メタ編集
                         </button>
-                        <button className="btn sm" onClick={()=>toast(`${g.series} 全話再生キューへ`,"info")}>▶ まとめて再生</button>
-                        {gSel.size>0&&<button className="btn danger sm" onClick={()=>deleteSelected(g)}>✕ 選択削除({gSel.size})</button>}
-                        <button className="btn danger sm" onClick={()=>deleteGroup(g)}>✕ シリーズ削除</button>
+                        <button className="btn sm" onClick={()=>toast(`${g.series} 全話再生キューへ`,"info")}>&gt; まとめて再生</button>
+                        {gSel.size>0&&<button className="btn danger sm" onClick={()=>deleteSelected(g)}>x 選択削除({gSel.size})</button>}
+                        <button className="btn danger sm" onClick={()=>deleteGroup(g)}>x シリーズ削除</button>
                       </div>
                     </div>
 
@@ -2369,12 +2369,12 @@ function FilesPage({ files, setFiles, toast, onQueue, onSftp, onZip, onMeta }) {
                                 </div>
                               ) : (
                                 <>
-                                  <button className="btn sm" title="再生" onClick={()=>toast(`再生: ${f.name}`,"info")}>▶</button>
-                                  <button className="dl-http-btn" title="HTTPダウンロード" onClick={()=>httpDownload(f)}>⬇ HTTP</button>
-                                  <button className="dl-sftp-btn" title="SFTPで転送" onClick={()=>onSftp({files:[f],label:f.name})}>⤓ SFTP</button>
-                                  <button className="meta-btn" title="メタデータ編集" onClick={()=>onMeta({files:[f]})}>🏷</button>
+                                  <button className="btn sm" title="再生" onClick={()=>toast(`再生: ${f.name}`,"info")}>&gt;</button>
+                                  <button className="dl-http-btn" title="HTTPダウンロード" onClick={()=>httpDownload(f)}>v HTTP</button>
+                                  <button className="dl-sftp-btn" title="SFTPで転送" onClick={()=>onSftp({files:[f],label:f.name})}>v SFTP</button>
+                                  <button className="meta-btn" title="メタデータ編集" onClick={()=>onMeta({files:[f]})}>#</button>
                                   <button className="btn sm" title="リネーム" onClick={()=>toast(`リネーム: ${f.name}`,"info")}>✎</button>
-                                  <button className="btn danger sm" onClick={()=>{setFiles(fs=>fs.filter(x=>x.name!==f.name));toast(`削除: ${f.name}`,"warn");}}>✕</button>
+                                  <button className="btn danger sm" onClick={()=>{setFiles(fs=>fs.filter(x=>x.name!==f.name));toast(`削除: ${f.name}`,"warn");}}>x</button>
                                 </>
                               )}
                             </div>
@@ -2479,7 +2479,7 @@ function MetadataModal({ files, onClose, toast }) {
     setFetching(false);
     setPhase(1);
     const fetched = Object.keys(cache).length;
-    toast(fetched > 0 ? `✓ ${files.length}件のメタデータを取得しました` : `⚠ メタデータを取得できませんでした`, fetched > 0 ? "info" : "warn");
+    toast(fetched > 0 ? `+ ${files.length}件のメタデータを取得しました` : `! メタデータを取得できませんでした`, fetched > 0 ? "info" : "warn");
   }
 
   // ─ ffmpegコマンドプレビュー生成 ─
@@ -2530,7 +2530,7 @@ function MetadataModal({ files, onClose, toast }) {
     }
 
     setPhase(3);
-    toast(`✓ ${files.length}件のメタデータ書き込み完了`, "info");
+    toast(`+ ${files.length}件のメタデータ書き込み完了`, "info");
   }
 
   const isWriting = phase === 2;
@@ -2541,7 +2541,7 @@ function MetadataModal({ files, onClose, toast }) {
       <div className="modal-box meta-modal-box">
         <div className="meta-modal-header">
           <span className="meta-modal-title">✦ メタデータ マネージャー — {files.length}ファイル</span>
-          <button className="btn sm" onClick={onClose} disabled={isWriting}>✕ 閉じる</button>
+          <button className="btn sm" onClick={onClose} disabled={isWriting}>x 閉じる</button>
         </div>
 
         {/* フェーズバー */}
@@ -2555,7 +2555,7 @@ function MetadataModal({ files, onClose, toast }) {
               marginBottom:-1, transition:"all .13s",
               background:i===phase?"rgba(61,255,160,.05)":"transparent"
             }} onClick={()=>{ if(i<=phase&&phase<2) setPhase(i); }}>
-              {i<phase?"✓ ":""}{p}
+              {i<phase?"+ ":""}{p}
             </div>
           ))}
           <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
@@ -2586,10 +2586,10 @@ function MetadataModal({ files, onClose, toast }) {
                   return (
                     <div key={i} className={`meta-file-row ${i===activeIdx?"active":""}`}
                       onClick={()=>setActiveIdx(i)}>
-                      <span style={{fontSize:13}}>🎬</span>
+                      <span style={{fontSize:13}}>[V]</span>
                       <span className="meta-file-name">{f.name}</span>
                       <span className={`meta-file-status ${hasData?"ok":"none"}`}>
-                        {hasData?"✓":"—"}
+                        {hasData?"+":"—"}
                       </span>
                     </div>
                   );
@@ -2611,7 +2611,7 @@ function MetadataModal({ files, onClose, toast }) {
                   ) : (
                     <div style={{width:80,height:112,background:"var(--c3)",borderRadius:4,
                       border:"1px solid var(--border)",display:"flex",alignItems:"center",
-                      justifyContent:"center",fontSize:24,color:"var(--dimmer)"}}>🎬</div>
+                      justifyContent:"center",fontSize:24,color:"var(--dimmer)"}}>[V]</div>
                   )}
                 </div>
                 <div style={{flex:1}}>
@@ -2764,7 +2764,7 @@ function MetadataModal({ files, onClose, toast }) {
             <div style={{flex:1,display:"flex",flexDirection:"column",gap:14}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
                 <div style={{fontFamily:"var(--mono)",fontSize:11,color:isDone?"var(--green)":"var(--amber)"}}>
-                  {isDone?`✓ 完了 — ${files.length}ファイル処理済`:
+                  {isDone?`+ 完了 — ${files.length}ファイル処理済`:
                     <><Spinner/> ffmpegでメタデータ書込中… {allProgress}%</>}
                 </div>
               </div>
@@ -2780,7 +2780,7 @@ function MetadataModal({ files, onClose, toast }) {
                 {writeLog.map((e,i)=>(
                   <div key={i} className="meta-write-row">
                     <span className="meta-write-icon">
-                      {e.state==="done"?"✓":e.state==="writing"?"⟳":e.state==="err"?"✕":"·"}
+                      {e.state==="done"?"+":e.state==="writing"?"~":e.state==="err"?"x":"·"}
                     </span>
                     <span className="meta-write-name">{e.name}</span>
                     <span className={`meta-write-state ${e.state}`}>
@@ -2889,8 +2889,8 @@ function ZipModal({ files, target, onClose, toast }) {
 
     // ─ Phase 1: サーバー圧縮シミュレーション ─
     setPhase(1); setProgress(0); setLog([]);
-    addLog(`🗜 ZIP圧縮開始: ${targetFiles.length}ファイル`);
-    addLog(`📦 出力: ${zipName}`);
+    addLog(`ZIP圧縮開始: ${targetFiles.length}ファイル`);
+    addLog(`ZIP 出力: ${zipName}`);
 
     const compressSteps = targetFiles.length;
     for (let i = 0; i < compressSteps; i++) {
@@ -2901,11 +2901,11 @@ function ZipModal({ files, target, onClose, toast }) {
       setProgress(Math.round((i+1)/compressSteps*50));
     }
 
-    addLog(`✓ 圧縮完了 — ${fmtMB(totalMB * 0.82)} (推定)`);
+    addLog(`+ 圧縮完了 — ${fmtMB(totalMB * 0.82)} (推定)`);
 
     // ─ Phase 2: 転送 ─
     setPhase(2);
-    addLog(`⬇ ブラウザへ転送開始...`);
+    addLog(`v ブラウザへ転送開始...`);
     const transferSteps = 30;
     for (let i = 0; i < transferSteps; i++) {
       await new Promise(r => setTimeout(r, 40 + Math.random()*60));
@@ -2916,8 +2916,8 @@ function ZipModal({ files, target, onClose, toast }) {
     const finalSizeMB = totalMB * 0.82;
     setZipSize(fmtMB(finalSizeMB));
     setPhase(3); setProgress(100);
-    addLog(`✓ ダウンロード完了: ${fmtMB(finalSizeMB)}`);
-    toast(`🗜 ZIPダウンロード完了: ${zipName}`,"info");
+    addLog(`+ ダウンロード完了: ${fmtMB(finalSizeMB)}`);
+    toast(`ZIPダウンロード完了: ${zipName}`,"info");
 
     // 実ZIPダウンロード
     try {
@@ -2945,8 +2945,8 @@ function ZipModal({ files, target, onClose, toast }) {
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&!isRunning&&onClose()}>
       <div className="modal-box zip-modal-box">
         <div className="zip-modal-header">
-          <span className="zip-modal-title">🗜 ZIP一括ダウンロード</span>
-          <button className="btn sm" onClick={onClose} disabled={isRunning}>✕ 閉じる</button>
+          <span className="zip-modal-title">ZIP一括ダウンロード</span>
+          <button className="btn sm" onClick={onClose} disabled={isRunning}>x 閉じる</button>
         </div>
 
         <div className="modal-body">
@@ -2985,7 +2985,7 @@ function ZipModal({ files, target, onClose, toast }) {
                           <label>
                             <input type="checkbox" className="cb" checked={allSel}
                               onChange={()=>toggleGroup(g)}/>
-                            <span className="zip-scope-icon">📁</span>
+                            <span className="zip-scope-icon">[D]</span>
                             <span className="zip-scope-name">{g.series}</span>
                             <span className="zip-scope-meta">{g.files.length}話 · {fmtMB(calcTotalMB(g.files))}</span>
                           </label>
@@ -3003,7 +3003,7 @@ function ZipModal({ files, target, onClose, toast }) {
                         <label>
                           <input type="checkbox" className="cb" checked={selected.has(f.name)}
                             onChange={()=>toggleFile(f.name)}/>
-                          <span className="zip-scope-icon">🎬</span>
+                          <span className="zip-scope-icon">[V]</span>
                           <span className="zip-scope-name">{f.name}</span>
                           <span className="zip-scope-meta">{f.size}</span>
                         </label>
@@ -3026,7 +3026,7 @@ function ZipModal({ files, target, onClose, toast }) {
               {/* サマリー */}
               <div style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",
                 background:"var(--c0)",border:"1px solid var(--border)",borderRadius:"var(--r)",marginBottom:14}}>
-                <div style={{fontSize:24}}>🗜</div>
+                <div style={{fontSize:24}}>ZIP</div>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--amber)",marginBottom:2}}>
                     {targetFiles.length}ファイル → {zipName}
@@ -3037,7 +3037,7 @@ function ZipModal({ files, target, onClose, toast }) {
                 </div>
                 <button className="zip-btn" style={{fontSize:11,padding:"6px 16px"}}
                   onClick={startZip} disabled={!targetFiles.length}>
-                  🗜 ZIP生成 & DL開始
+                  ZIP生成 & DL開始
                 </button>
               </div>
 
@@ -3059,7 +3059,7 @@ function ZipModal({ files, target, onClose, toast }) {
               <div className="zip-phase-row" style={{marginBottom:14}}>
                 {ZIP_PHASES.map((p,i)=>(
                   <span key={i} className={i<phase?"done":i===phase?"active":""}>
-                    {i<phase?"✓ ":i===phase?"▶ ":""}{p}
+                    {i<phase?"+ ":i===phase?"> ":""}{p}
                     {i<ZIP_PHASES.length-1&&<span style={{margin:"0 6px",opacity:.3}}>›</span>}
                   </span>
                 ))}
@@ -3068,7 +3068,7 @@ function ZipModal({ files, target, onClose, toast }) {
               {/* プログレスバー */}
               <div className="zip-progress-wrap">
                 <div className="zip-status-label">
-                  {isDone ? <><span style={{color:"var(--green)"}}>✓ 完了</span></> :
+                  {isDone ? <><span style={{color:"var(--green)"}}>+ 完了</span></> :
                     <><Spinner/> {phase===1?"圧縮中...":"転送中..."}</>}
                   <span style={{marginLeft:"auto"}}>{progress}%</span>
                 </div>
@@ -3091,7 +3091,7 @@ function ZipModal({ files, target, onClose, toast }) {
               {/* 完了ボックス */}
               {isDone && (
                 <div className="zip-result-box">
-                  <div className="zip-result-icon">🗜</div>
+                  <div className="zip-result-icon">ZIP</div>
                   <div style={{flex:1}}>
                     <div className="zip-result-name">{zipName}</div>
                     <div className="zip-result-meta">
@@ -3099,7 +3099,7 @@ function ZipModal({ files, target, onClose, toast }) {
                     </div>
                   </div>
                   <div style={{display:"flex",gap:8,flexShrink:0}}>
-                    <button className="zip-btn" onClick={reset}>🔄 再実行</button>
+                    <button className="zip-btn" onClick={reset}>~ 再実行</button>
                     <button className="btn primary sm" onClick={onClose}>閉じる</button>
                   </div>
                 </div>
@@ -3194,7 +3194,7 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
       setDlProgress(p=>({...p,[filename]:100}));
       setTimeout(() => {
         setDlProgress(p=>{const n={...p};delete n[filename];return n;});
-        toast(`✓ SFTP転送完了: ${filename}`, "info");
+        toast(`+ SFTP転送完了: ${filename}`, "info");
       }, 700);
     } catch (e) {
       setDlProgress(p=>{const n={...p};delete n[filename];return n;});
@@ -3212,8 +3212,8 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal-box">
         <div className="modal-header">
-          <span className="modal-title">⤓ SFTP転送マネージャー</span>
-          <button className="btn sm" onClick={onClose}>✕ 閉じる</button>
+          <span className="modal-title">v SFTP転送マネージャー</span>
+          <button className="btn sm" onClick={onClose}>x 閉じる</button>
         </div>
 
         <div className="sftp-tabs" style={{padding:"0 18px",marginBottom:0,borderBottom:"1px solid var(--border)"}}>
@@ -3269,7 +3269,7 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
             <div>
               {!connected && (
                 <div style={{textAlign:"center",padding:"32px",fontFamily:"var(--mono)",fontSize:12,color:"var(--dim)"}}>
-                  <div style={{fontSize:28,marginBottom:12}}>⤓</div>
+                  <div style={{fontSize:28,marginBottom:12}}>v</div>
                   まず「接続設定」タブで接続してください
                   <div style={{marginTop:12}}><button className="btn primary sm" onClick={()=>setTab("connect")}>接続設定へ</button></div>
                 </div>
@@ -3287,12 +3287,12 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
                       <button className="btn sm" onClick={()=>{
                         const parent="/"+pathParts.slice(0,-1).join("/");
                         navigate(parent||config.remotePath||"/media/anime");
-                      }}>↑ 上へ</button>
+                      }}>^ 上へ</button>
                       <button className="dl-sftp-btn" onClick={()=>{
                         const dirFiles=currentItems.filter(x=>x.type==="file");
                         if(dirFiles.length) dirFiles.forEach((f,i)=>setTimeout(()=>startTransfer(f.name),i*150));
                         else toast("このフォルダにファイルがありません","warn");
-                      }}>⤓ フォルダ全転送</button>
+                      }}>v フォルダ全転送</button>
                     </div>
                   </div>
                   {currentItems.length===0&&<div className="empty" style={{padding:"24px"}}>空のフォルダ</div>}
@@ -3300,7 +3300,7 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
                     const pct=dlProgress[item.name];
                     return (
                       <div key={i} className="sftp-row">
-                        <span className="sftp-icon">{item.type==="dir"?"📁":"🎬"}</span>
+                        <span className="sftp-icon">{item.type==="dir"?"[D]":"[V]"}</span>
                         <span className="sftp-name" onClick={()=>item.type==="dir"&&navigate(remotePath.replace(/\/$/,"") + "/" + item.name)}>{item.name}</span>
                         {item.type==="file" && <span className="sftp-size">{item.size}</span>}
                         {item.type==="dir" && (
@@ -3318,7 +3318,7 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
                                 ch.forEach((f,i)=>setTimeout(()=>startTransfer(f.name),i*150));
                                 toast(`フォルダ「${item.name}」を転送開始`,"info");
                               } catch { toast("ディレクトリ取得エラー","warn"); }
-                            }}>⤓ フォルダDL</button>
+                            }}>v フォルダDL</button>
                         )}
                         {item.type==="file" && (
                           pct!=null ? (
@@ -3327,7 +3327,7 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
                               <span>{pct}%</span>
                             </div>
                           ) : (
-                            <button className="dl-sftp-btn" style={{marginLeft:"auto"}} onClick={()=>startTransfer(item.name)}>⤓ 転送</button>
+                            <button className="dl-sftp-btn" style={{marginLeft:"auto"}} onClick={()=>startTransfer(item.name)}>v 転送</button>
                           )
                         )}
                       </div>
@@ -3349,12 +3349,12 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
                   </div>
                   {!connected && (
                     <div style={{color:"var(--amber)",fontFamily:"var(--mono)",fontSize:10,marginBottom:10}}>
-                      ⚠ 未接続です。先に接続設定を行ってください。
+                      ! 未接続です。先に接続設定を行ってください。
                     </div>
                   )}
                   <div style={{display:"flex",gap:8,marginBottom:12}}>
                     <button className="btn primary" onClick={transferAll} disabled={!connected}>
-                      ⤓ 全ファイルを転送開始
+                      v 全ファイルを転送開始
                     </button>
                     {!connected && <button className="btn sm" onClick={()=>setTab("connect")}>接続設定へ</button>}
                   </div>
@@ -3364,7 +3364,7 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
                       return (
                         <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",
                           borderBottom:"1px solid rgba(255,255,255,.03)"}}>
-                          <span style={{fontSize:13}}>🎬</span>
+                          <span style={{fontSize:13}}>[V]</span>
                           <span style={{fontFamily:"var(--mono)",fontSize:10,flex:1,overflow:"hidden",
                             textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</span>
                           <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--amber)",flexShrink:0}}>{f.size}</span>
@@ -3374,7 +3374,7 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
                               <span>{pct}%</span>
                             </div>
                           ) : (
-                            <button className="dl-sftp-btn" onClick={()=>startTransfer(f.name)} disabled={!connected}>⤓</button>
+                            <button className="dl-sftp-btn" onClick={()=>startTransfer(f.name)} disabled={!connected}>v</button>
                           )}
                         </div>
                       );
@@ -3382,7 +3382,7 @@ function SFTPModal({ config, setConfig, target, onClose, toast }) {
                   </div>
                 </div>
               )}
-              {!target && <div className="empty"><div className="empty-icon">⤓</div>転送対象がありません<br/><span style={{fontSize:11}}>ファイル管理から「SFTP」ボタンを押してください</span></div>}
+              {!target && <div className="empty"><div className="empty-icon">v</div>転送対象がありません<br/><span style={{fontSize:11}}>ファイル管理から「SFTP」ボタンを押してください</span></div>}
             </div>
           )}
         </div>
@@ -3443,11 +3443,11 @@ function FolderPage({ files, toast, onSftp, onZip, onMeta }) {
     <div className="folder-page">
       {/* Tree */}
       <div className="folder-tree">
-        <div className="folder-tree-head">⊟ フォルダ一覧 ({folders.length})</div>
+        <div className="folder-tree-head">- フォルダ一覧 ({folders.length})</div>
         <div style={{flex:1,overflowY:"auto"}}>
           <div className={`ftree-item ${!selectedFolder?"active":""}`}
             onClick={()=>setSelectedFolder(null)}>
-            <span className="ftree-icon">📂</span>
+            <span className="ftree-icon">[D]</span>
             <span>すべて</span>
             <span className="ftree-count">{files.length}</span>
           </div>
@@ -3455,7 +3455,7 @@ function FolderPage({ files, toast, onSftp, onZip, onMeta }) {
             <div key={f.name}
               className={`ftree-item ${selectedFolder===f.name?"active":""}`}
               onClick={()=>setSelectedFolder(f.name)}>
-              <span className="ftree-icon">📁</span>
+              <span className="ftree-icon">[D]</span>
               <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</span>
               <span className="ftree-count">{f.files.length}</span>
             </div>
@@ -3468,7 +3468,7 @@ function FolderPage({ files, toast, onSftp, onZip, onMeta }) {
         {/* Header */}
         {currentFolder ? (
           <div className="folder-detail-head">
-            <div style={{fontSize:28}}>📁</div>
+            <div style={{fontSize:28}}>[D]</div>
             <div style={{flex:1}}>
               <div className="folder-detail-title">{currentFolder.name}</div>
               <div className="folder-detail-meta">
@@ -3477,25 +3477,25 @@ function FolderPage({ files, toast, onSftp, onZip, onMeta }) {
             </div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               <button className="dl-http-btn" onClick={()=>httpDownloadFolder(currentFolder)}>
-                ⬇ HTTP 全話DL
+                v HTTP 全話DL
               </button>
               <button className="dl-sftp-btn"
                 onClick={()=>onSftp({files:currentFolder.files,label:`${currentFolder.name}（${currentFolder.files.length}話）`})}>
-                ⤓ SFTPで転送
+                v SFTPで転送
               </button>
               <button className="zip-btn"
                 onClick={()=>onZip({files:currentFolder.files,label:`${currentFolder.name}（${currentFolder.files.length}話）`})}>
-                🗜 ZIPでDL
+                ZIPでDL
               </button>
               <button className="meta-btn"
                 onClick={()=>onMeta({files:currentFolder.files})}>
-                🏷 メタデータ一括書込
+                # メタデータ一括書込
               </button>
             </div>
           </div>
         ) : (
           <div className="folder-detail-head">
-            <div style={{fontSize:28}}>📂</div>
+            <div style={{fontSize:28}}>[D]</div>
             <div style={{flex:1}}>
               <div className="folder-detail-title">すべてのフォルダ</div>
               <div className="folder-detail-meta">{folders.length}作品 · {files.length}ファイル</div>
@@ -3503,18 +3503,18 @@ function FolderPage({ files, toast, onSftp, onZip, onMeta }) {
             <div style={{display:"flex",gap:8}}>
               <button className="dl-http-btn" onClick={()=>{
                 folders.forEach(f=>httpDownloadFolder(f));
-              }}>⬇ HTTP 全フォルダDL</button>
+              }}>v HTTP 全フォルダDL</button>
               <button className="dl-sftp-btn"
                 onClick={()=>onSftp({files,label:`全フォルダ（${files.length}ファイル）`})}>
-                ⤓ SFTP 全フォルダ転送
+                v SFTP 全フォルダ転送
               </button>
               <button className="zip-btn"
                 onClick={()=>onZip({files,label:`全フォルダ（${files.length}ファイル）`})}>
-                🗜 全フォルダZIP
+                ZIP全フォルダZIP
               </button>
               <button className="meta-btn"
                 onClick={()=>onMeta({files})}>
-                🏷 全ファイルメタ書込
+                # 全ファイルメタ書込
               </button>
             </div>
           </div>
@@ -3536,7 +3536,7 @@ function FolderPage({ files, toast, onSftp, onZip, onMeta }) {
               const pct=dlProgress[f.name];
               return (
                 <div key={i} className="folder-file-row">
-                  <span style={{color:"var(--cyan)",fontSize:13,textAlign:"center"}}>🎬</span>
+                  <span style={{color:"var(--cyan)",fontSize:13,textAlign:"center"}}>[V]</span>
                   <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--cyan)",textAlign:"right"}}>
                     {String(f.ep||i+1).padStart(2,"0")}
                   </span>
@@ -3551,7 +3551,7 @@ function FolderPage({ files, toast, onSftp, onZip, onMeta }) {
                       </div>
                     ) : (
                       <>
-                        <button className="btn sm" onClick={()=>toast(`再生: ${f.name}`,"info")}>▶</button>
+                        <button className="btn sm" onClick={()=>toast(`再生: ${f.name}`,"info")}>&gt;</button>
                         <button className="dl-http-btn" onClick={()=>{
                           let pct2=0;
                           const iv=setInterval(()=>{
@@ -3560,9 +3560,9 @@ function FolderPage({ files, toast, onSftp, onZip, onMeta }) {
                             if(pct2>=100){clearInterval(iv);setTimeout(()=>setDlProgress(p=>{const n={...p};delete n[f.name];return n;}),700);}
                           },300);
                           toast(`HTTP DL開始: ${f.name}`,"info");
-                        }}>⬇ HTTP</button>
-                        <button className="dl-sftp-btn" onClick={()=>onSftp({files:[f],label:f.name})}>⤓ SFTP</button>
-                        <button className="meta-btn" onClick={()=>onMeta({files:[f]})}>🏷</button>
+                        }}>v HTTP</button>
+                        <button className="dl-sftp-btn" onClick={()=>onSftp({files:[f],label:f.name})}>v SFTP</button>
+                        <button className="meta-btn" onClick={()=>onMeta({files:[f]})}>#</button>
                       </>
                     )}
                   </div>
@@ -3674,7 +3674,7 @@ function SettingsPage({ sftpConfig, setSftpConfig, toast }) {
             {field("sftpKeyPath","SSH 鍵パス","~/.ssh/id_rsa","秘密鍵のパス（任意）")}
             {field("sftpRemotePath","リモートベースパス","/media/anime","サーバー上の保存先ルートパス")}
             <div className="setting-desc" style={{marginTop:4}}>
-              💡 外出先からはTailscale IPを使用 / Cloudflare Tunnel経由も可
+              * 外出先からはTailscale IPを使用 / Cloudflare Tunnel経由も可
             </div>
           </div>
           <div className="card" style={{padding:"16px 18px"}}>
@@ -3715,7 +3715,7 @@ function SettingsPage({ sftpConfig, setSftpConfig, toast }) {
         </div>
       </div>
       <div style={{marginTop:16}}>
-        <button className="btn primary" onClick={save}>✓ 設定を保存</button>
+        <button className="btn primary" onClick={save}>+ 設定を保存</button>
       </div>
     </div>
   );

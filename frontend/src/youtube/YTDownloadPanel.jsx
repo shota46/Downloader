@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 const STATUS_META = {
-  downloading:{ label:"ダウンロード中",  color:"#ff3b3b", icon:"⬇" },
-  pending:    { label:"待機中",          color:"#78909c", icon:"⏳" },
-  converting: { label:"変換中",          color:"#ffa726", icon:"⚙"  },
-  tagging:    { label:"メタデータ書込中", color:"#ab47bc", icon:"🏷"  },
-  done:       { label:"完了",            color:"#4caf50", icon:"✓"  },
-  error:      { label:"エラー",          color:"#ef5350", icon:"✕"  },
-  paused:     { label:"一時停止",        color:"#78909c", icon:"⏸"  },
+  downloading:{ label:"ダウンロード中",  color:"#ff3b3b", icon:"v" },
+  pending:    { label:"待機中",          color:"#78909c", icon:".." },
+  converting: { label:"変換中",          color:"#ffa726", icon:"*"  },
+  tagging:    { label:"メタデータ書込中", color:"#ab47bc", icon:"#"  },
+  done:       { label:"完了",            color:"#4caf50", icon:"+"  },
+  error:      { label:"エラー",          color:"#ef5350", icon:"x"  },
+  paused:     { label:"一時停止",        color:"#78909c", icon:"||"  },
 };
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
@@ -308,7 +308,7 @@ function MetaModal({ file, onClose, onSave, onToast }) {
       if (data.ok) {
         setSaved(true);
         onSave?.(file.id || file.name);
-        onToast(`🏷 メタデータを書き込みました: ${file.title}`, "meta");
+        onToast(`# メタデータを書き込みました: ${file.title}`, "meta");
       } else {
         onToast(`メタデータ書き込みエラー: ${data.detail || "不明"}`, "error");
       }
@@ -339,8 +339,8 @@ function MetaModal({ file, onClose, onSave, onToast }) {
     <div className="modal-overlay" onClick={e => e.target===e.currentTarget && !saving && onClose()}>
       <div className="modal">
         <div className="modal-hd">
-          <span>🏷 {isMp3 ? "MP3 ID3タグ" : "MP4メタデータ"}編集</span>
-          <button className="close-btn" onClick={onClose} disabled={saving}>✕</button>
+          <span># {isMp3 ? "MP3 ID3タグ" : "MP4メタデータ"}編集</span>
+          <button className="close-btn" onClick={onClose} disabled={saving}>x</button>
         </div>
         <div className="modal-body">
 
@@ -349,7 +349,7 @@ function MetaModal({ file, onClose, onSave, onToast }) {
             <div className="head">
               現在のタグ（{isMp3 ? "mutagen" : "ffprobe"}）
               <span className={`meta-status-badge ${file.meta_written ? "ok" : "no"}`}>
-                {file.meta_written ? "🏷 書き込み済み" : "未書き込み"}
+                {file.meta_written ? "# 書き込み済み" : "未書き込み"}
               </span>
             </div>
             {loadingTags ? (
@@ -416,7 +416,7 @@ function MetaModal({ file, onClose, onSave, onToast }) {
         <div className="modal-ft">
           <button className="btn btn-g" onClick={onClose} disabled={saving}>キャンセル</button>
           <button className="btn btn-purple" onClick={handleSave} disabled={saving || saved}>
-            {saving ? "書き込み中..." : saved ? "✓ 完了" : "🏷 メタデータを書き込む"}
+            {saving ? "書き込み中..." : saved ? "+ 完了" : "# メタデータを書き込む"}
           </button>
         </div>
       </div>
@@ -445,7 +445,7 @@ function SftpModal({ targets, onClose, onToast }) {
     addLog(`接続中: ${user}@${host}:${port}`,"info");
     let idx=0;
     const tick=setInterval(()=>{
-      if(idx>=targets.length){clearInterval(tick);setProg(100);setSpeed("—");addLog("全ファイルの転送が完了しました ✓","ok");setRunning(false);onToast(`SFTPで ${targets.length} ファイルを転送しました`,"success");return}
+      if(idx>=targets.length){clearInterval(tick);setProg(100);setSpeed("—");addLog("全ファイルの転送が完了しました +","ok");setRunning(false);onToast(`SFTPで ${targets.length} ファイルを転送しました`,"success");return}
       const f=targets[idx];setCurFile(f.title||f.name);
       const sp=(Math.random()*8+2).toFixed(1);setSpeed(`${sp} MB/s`);
       addLog(`転送中: ${f.title||f.name} @ ${sp} MB/s`);
@@ -455,7 +455,7 @@ function SftpModal({ targets, onClose, onToast }) {
   return (
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&!running&&onClose()}>
       <div className="modal">
-        <div className="modal-hd"><span>📡 SFTPで転送 — {targets.length===1?targets[0].title:targets.length+" ファイル"}</span><button className="close-btn" onClick={onClose} disabled={running}>✕</button></div>
+        <div className="modal-hd"><span>&gt; SFTPで転送 — {targets.length===1?targets[0].title:targets.length+" ファイル"}</span><button className="close-btn" onClick={onClose} disabled={running}>x</button></div>
         <div className="modal-body">
           <div className="frow">
             <div className="ig" style={{flex:2}}><label>ホスト / IP</label><input className="ifield" value={host} onChange={e=>setHost(e.target.value)} disabled={running}/></div>
@@ -469,7 +469,7 @@ function SftpModal({ targets, onClose, onToast }) {
           {(running||prog===100)&&(
             <div className="sftp-prog-wrap">
               <div className="divider"/>
-              <div className="sftp-file-name">▶ {curFile||"準備中..."}</div>
+              <div className="sftp-file-name">&gt; {curFile||"準備中..."}</div>
               <div className="sftp-pt"><div className="sftp-pf" style={{width:prog+"%"}}/></div>
               <div className="sftp-stats">
                 <span>進捗 <span className="v">{prog}%</span></span>
@@ -485,7 +485,7 @@ function SftpModal({ targets, onClose, onToast }) {
         <div className="modal-ft">
           <button className="btn btn-g" onClick={onClose} disabled={running}>キャンセル</button>
           <button className="btn btn-blue" onClick={start} disabled={running||!host||!user||prog===100}>
-            {running?"転送中...":prog===100?"完了 ✓":"📡 転送開始"}
+            {running?"転送中...":prog===100?"完了 +":"> 転送開始"}
           </button>
         </div>
       </div>
@@ -522,7 +522,7 @@ function FilesPage({ folders, onToast }) {
     <>
       <div style={{display:"flex",gap:16,marginBottom:14,fontSize:11,color:"var(--text3)",fontFamily:"var(--mono)",flexWrap:"wrap"}}>
         <span>{allFiles.length} ファイル · 合計 {total.toFixed(0)} MB</span>
-        <span style={{color:"var(--purple)"}}>🏷 メタデータ書込済: {metaCount} / {allFiles.length}</span>
+        <span style={{color:"var(--purple)"}}># メタデータ書込済: {metaCount} / {allFiles.length}</span>
       </div>
 
       {selected.size>0&&(
@@ -530,9 +530,9 @@ function FilesPage({ folders, onToast }) {
           <span><span className="count">{selected.size}</span> ファイル選択中</span>
           <div style={{flex:1}}/>
           <button className="btn btn-g btn-s" onClick={clearSel}>解除</button>
-          <button className="btn btn-purple btn-s" onClick={()=>{onToast(`🏷 ${selected.size}ファイルにメタデータを一括書き込み中`,"meta");clearSel()}}>🏷 一括メタ書込</button>
-          <button className="btn btn-amber btn-s" onClick={()=>{selFiles.forEach((f,i)=>setTimeout(()=>{const a=document.createElement("a");a.href=`/api/ytdl/stream/${encodeURIComponent(f.folderName)}/${encodeURIComponent(f.name)}`;a.download=f.name;a.click()},i*300));onToast(`⬇ ${selected.size}ファイルをダウンロード`,"info");clearSel()}}>⬇ 一括DL</button>
-          <button className="btn btn-blue btn-s" onClick={()=>setSftpTargets(selFiles)}>📡 SFTP</button>
+          <button className="btn btn-purple btn-s" onClick={()=>{onToast(`# ${selected.size}ファイルにメタデータを一括書き込み中`,"meta");clearSel()}}># 一括メタ書込</button>
+          <button className="btn btn-amber btn-s" onClick={()=>{selFiles.forEach((f,i)=>setTimeout(()=>{const a=document.createElement("a");a.href=`/api/ytdl/stream/${encodeURIComponent(f.folderName)}/${encodeURIComponent(f.name)}`;a.download=f.name;a.click()},i*300));onToast(`v ${selected.size}ファイルをダウンロード`,"info");clearSel()}}>v 一括DL</button>
+          <button className="btn btn-blue btn-s" onClick={()=>setSftpTargets(selFiles)}>&gt; SFTP</button>
         </div>
       )}
 
@@ -563,21 +563,21 @@ function FilesPage({ folders, onToast }) {
               <tr key={f.id} className={selected.has(f.id)?"sel-row":""}>
                 <td style={{paddingLeft:16}}><input type="checkbox" className="cb" checked={selected.has(f.id)} onChange={()=>toggle(f.id)}/></td>
                 <td><span className="meta-dot" title={f.meta_written?"メタデータ書込済":"未書き込み"} style={{background:f.meta_written?"var(--purple)":"var(--border3)",boxShadow:f.meta_written?"0 0 5px var(--purple)":"none"}}/></td>
-                <td style={{fontSize:18,textAlign:"center",padding:"9px 6px"}}>{f.ext==="mp3"?"🎵":"🎬"}</td>
+                <td style={{fontSize:18,textAlign:"center",padding:"9px 6px"}}>{f.ext==="mp3"?"[A]":"[V]"}</td>
                 <td>
                   <div className="ft">{f.title}</div>
-                  <div className="fc">📁 {f.folderName}</div>
+                  <div className="fc">[D] {f.folderName}</div>
                 </td>
                 <td><span className="qtag qtag-f">{f.quality}</span></td>
                 <td><span className="qtag qtag-s">{f.size}</span></td>
                 <td style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text3)"}}>{f.date}</td>
                 <td>
                   <div style={{display:"flex",gap:4}}>
-                    <button className="btn btn-g btn-xs" title="再生">▶</button>
-                    <button className="btn btn-purple btn-xs" title="メタデータ編集" onClick={()=>setMetaFile(f)}>🏷</button>
-                    <button className="btn btn-amber btn-xs" title="ダウンロード" onClick={()=>{const a=document.createElement("a");a.href=`/api/ytdl/stream/${encodeURIComponent(f.folderName)}/${encodeURIComponent(f.name)}`;a.download=f.name;a.click()}}>⬇</button>
-                    <button className="btn btn-blue btn-xs" title="SFTP" onClick={()=>setSftpTargets([f])}>📡</button>
-                    <button className="btn btn-d btn-xs" title="削除">✕</button>
+                    <button className="btn btn-g btn-xs" title="再生">&gt;</button>
+                    <button className="btn btn-purple btn-xs" title="メタデータ編集" onClick={()=>setMetaFile(f)}>#</button>
+                    <button className="btn btn-amber btn-xs" title="ダウンロード" onClick={()=>{const a=document.createElement("a");a.href=`/api/ytdl/stream/${encodeURIComponent(f.folderName)}/${encodeURIComponent(f.name)}`;a.download=f.name;a.click()}}>v</button>
+                    <button className="btn btn-blue btn-xs" title="SFTP" onClick={()=>setSftpTargets([f])}>&gt;</button>
+                    <button className="btn btn-d btn-xs" title="削除">x</button>
                   </div>
                 </td>
               </tr>
@@ -590,7 +590,7 @@ function FilesPage({ folders, onToast }) {
       <div style={{fontSize:11,color:"var(--text3)",display:"flex",gap:16,marginTop:8}}>
         <span><span className="meta-dot ok" style={{display:"inline-block",width:7,height:7,borderRadius:"50%",background:"var(--purple)",verticalAlign:"middle",marginRight:5}}/>メタデータ書込済</span>
         <span><span className="meta-dot" style={{display:"inline-block",width:7,height:7,borderRadius:"50%",background:"var(--border3)",verticalAlign:"middle",marginRight:5}}/>未書き込み</span>
-        <span>🏷 ボタンで個別編集・書き込み</span>
+        <span># ボタンで個別編集・書き込み</span>
       </div>
 
       {metaFile&&<MetaModal file={metaFile} onClose={()=>setMetaFile(null)} onSave={markMetaWritten} onToast={onToast}/>}
@@ -621,9 +621,9 @@ function FolderPage({ folders, onToast }) {
           <span><span className="count">{selFolders.size}</span> フォルダ選択中 ({selFiles.length} ファイル)</span>
           <div style={{flex:1}}/>
           <button className="btn btn-g btn-s" onClick={()=>setSelFolders(new Set())}>解除</button>
-          <button className="btn btn-purple btn-s" onClick={()=>{onToast(`🏷 ${selFolders.size}フォルダのメタデータを一括書き込み`,"meta");setSelFolders(new Set())}}>🏷 一括メタ書込</button>
-          <button className="btn btn-amber btn-s" onClick={()=>{onToast(`📦 ${selFolders.size}フォルダをZIPダウンロード`,"info");setSelFolders(new Set())}}>⬇ まとめてDL</button>
-          <button className="btn btn-blue btn-s" onClick={()=>setSftpTargets(selFiles)}>📡 SFTP</button>
+          <button className="btn btn-purple btn-s" onClick={()=>{onToast(`# ${selFolders.size}フォルダのメタデータを一括書き込み`,"meta");setSelFolders(new Set())}}># 一括メタ書込</button>
+          <button className="btn btn-amber btn-s" onClick={()=>{onToast(`ZIP ${selFolders.size}フォルダをZIPダウンロード`,"info");setSelFolders(new Set())}}>v まとめてDL</button>
+          <button className="btn btn-blue btn-s" onClick={()=>setSftpTargets(selFiles)}>&gt; SFTP</button>
         </div>
       )}
       <div style={{marginBottom:12,fontSize:11,color:"var(--text3)",fontFamily:"var(--mono)"}}>
@@ -636,35 +636,35 @@ function FolderPage({ folders, onToast }) {
             <div key={folder.id} className={`folder-card${openId===folder.id?" open":""}`}>
               <div className="folder-header" onClick={()=>setOpenId(p=>p===folder.id?null:folder.id)}>
                 <input type="checkbox" className="cb" checked={selFolders.has(folder.id)} onChange={e=>toggleSel(folder.id,e)} onClick={e=>e.stopPropagation()}/>
-                <span className="folder-icon">📁</span>
+                <span className="folder-icon">[D]</span>
                 <div className="folder-meta">
                   <div className="folder-name">{folder.name}</div>
                   <div className="folder-info">
                     {folder.fileCount} 本 · {folder.totalSize}
-                    <span style={{marginLeft:8,color:"var(--purple)"}}>🏷 {written}/{folder.files.length}</span>
+                    <span style={{marginLeft:8,color:"var(--purple)"}}># {written}/{folder.files.length}</span>
                   </div>
                 </div>
                 <div className="folder-actions" onClick={e=>e.stopPropagation()}>
-                  <button className="btn btn-purple btn-xs" title="フォルダ一括メタ書込" onClick={e=>{e.stopPropagation();onToast(`🏷 "${folder.name}" のメタデータを一括書き込み`,"meta")}}>🏷</button>
-                  <button className="btn btn-amber btn-xs" title="全ファイルDL" onClick={e=>{e.stopPropagation();folder.files.forEach((f,i)=>setTimeout(()=>{const a=document.createElement("a");a.href=`/api/ytdl/stream/${encodeURIComponent(f.folderName)}/${encodeURIComponent(f.name)}`;a.download=f.name;a.click()},i*300));onToast(`⬇ "${folder.name}" の${folder.files.length}ファイルをDL`,"info")}}>⬇</button>
-                  <button className="btn btn-blue btn-xs" title="SFTPで転送" onClick={e=>{e.stopPropagation();setSftpTargets(folder.files)}}>📡</button>
-                  <span style={{color:"var(--text3)",fontSize:12,marginLeft:2}}>{openId===folder.id?"▲":"▼"}</span>
+                  <button className="btn btn-purple btn-xs" title="フォルダ一括メタ書込" onClick={e=>{e.stopPropagation();onToast(`# "${folder.name}" のメタデータを一括書き込み`,"meta")}}>#</button>
+                  <button className="btn btn-amber btn-xs" title="全ファイルDL" onClick={e=>{e.stopPropagation();folder.files.forEach((f,i)=>setTimeout(()=>{const a=document.createElement("a");a.href=`/api/ytdl/stream/${encodeURIComponent(f.folderName)}/${encodeURIComponent(f.name)}`;a.download=f.name;a.click()},i*300));onToast(`v "${folder.name}" の${folder.files.length}ファイルをDL`,"info")}}>v</button>
+                  <button className="btn btn-blue btn-xs" title="SFTPで転送" onClick={e=>{e.stopPropagation();setSftpTargets(folder.files)}}>&gt;</button>
+                  <span style={{color:"var(--text3)",fontSize:12,marginLeft:2}}>{openId===folder.id?"^":"v"}</span>
                 </div>
               </div>
               {openId===folder.id&&(
                 <div className="folder-files">
                   {folder.files.map(f=>(
                     <div key={f.id} className="folder-file-row">
-                      <span style={{fontSize:13}}>{f.ext==="mp3"?"🎵":"🎬"}</span>
+                      <span style={{fontSize:13}}>{f.ext==="mp3"?"[A]":"[V]"}</span>
                       <span className="meta-dot" style={{background:f.meta_written?"var(--purple)":"var(--border3)",boxShadow:f.meta_written?"0 0 4px var(--purple)":"none"}}/>
                       <span className="ffr-name">{f.title}</span>
                       <span className="qtag qtag-f" style={{flexShrink:0,marginRight:4}}>{f.quality}</span>
                       <span className="ffr-meta">{f.size}</span>
                       <div style={{display:"flex",gap:4,marginLeft:8,flexShrink:0}}>
-                        <button className="btn btn-g btn-xs">▶</button>
-                        <button className="btn btn-purple btn-xs" title="メタデータ編集" onClick={()=>setMetaFile({...f,folderName:folder.name})}>🏷</button>
-                        <button className="btn btn-amber btn-xs" onClick={()=>{const a=document.createElement("a");a.href=`/api/ytdl/stream/${encodeURIComponent(f.folderName)}/${encodeURIComponent(f.name)}`;a.download=f.name;a.click()}}>⬇</button>
-                        <button className="btn btn-blue btn-xs" onClick={()=>setSftpTargets([f])}>📡</button>
+                        <button className="btn btn-g btn-xs">&gt;</button>
+                        <button className="btn btn-purple btn-xs" title="メタデータ編集" onClick={()=>setMetaFile({...f,folderName:folder.name})}>#</button>
+                        <button className="btn btn-amber btn-xs" onClick={()=>{const a=document.createElement("a");a.href=`/api/ytdl/stream/${encodeURIComponent(f.folderName)}/${encodeURIComponent(f.name)}`;a.download=f.name;a.click()}}>v</button>
+                        <button className="btn btn-blue btn-xs" onClick={()=>setSftpTargets([f])}>&gt;</button>
                       </div>
                     </div>
                   ))}
@@ -686,19 +686,19 @@ function QItem({ item, onRemove, onPause }) {
   return (
     <div className="qi">
       <div className="qthumb">
-        {item.thumbnail?<img src={item.thumbnail} alt="" onError={e=>e.target.style.display="none"}/>:<span className="qthp">▶</span>}
+        {item.thumbnail?<img src={item.thumbnail} alt="" onError={e=>e.target.style.display="none"}/>:<span className="qthp">&gt;</span>}
       </div>
       <div className="qbody">
         <div className="qtop">
           <div style={{flex:1,minWidth:0}}>
             <div className="qtitle">{item.title}</div>
-            <div className="qch">📺 {item.channel} · {item.episode}</div>
+            <div className="qch">@ {item.channel} · {item.episode}</div>
           </div>
           <div className="sbadge" style={{background:m.color+"20",color:m.color}}>{m.icon} {m.label}</div>
           <span className="qtag qtag-f">{item.quality}</span>
           {item.status==="done"&&(
             <span className={`qtag ${item.meta_written?"qtag-meta":"qtag-no-meta"}`}>
-              {item.meta_written?"🏷 メタ済":"メタ未"}
+              {item.meta_written?"# メタ済":"メタ未"}
             </span>
           )}
         </div>
@@ -710,10 +710,10 @@ function QItem({ item, onRemove, onPause }) {
           <span>サイズ <span className="v">{item.size}</span></span>
         </div>
         <div className="qacts">
-          {item.status==="downloading"&&<button className="btn btn-g btn-s" onClick={()=>onPause?.(item.id)}>⏸ 一時停止</button>}
-          {item.status==="paused"&&<button className="btn btn-g btn-s">▶ 再開</button>}
-          <button className="btn btn-g btn-s">↑ 優先</button>
-          <button className="btn btn-d btn-s" onClick={()=>onRemove?.(item.id)}>✕</button>
+          {item.status==="downloading"&&<button className="btn btn-g btn-s" onClick={()=>onPause?.(item.id)}>|| 一時停止</button>}
+          {item.status==="paused"&&<button className="btn btn-g btn-s">&gt; 再開</button>}
+          <button className="btn btn-g btn-s">^ 優先</button>
+          <button className="btn btn-d btn-s" onClick={()=>onRemove?.(item.id)}>x</button>
         </div>
       </div>
     </div>
@@ -734,15 +734,15 @@ function Overview({ queue, folders }) {
         <div className="sc"><div className="sl">保存済み</div><div className="sv">{fileCount}</div><div className="ss2">{folders.length} フォルダ</div></div>
         <div className="sc"><div className="sl">タグ書込済</div><div className="sv" style={{color:"var(--purple)"}}>{metaCount}</div><div className="ss2">/ {fileCount} ファイル</div></div>
       </div>
-      <div className="phd">▤ 処理中のキュー</div>
+      <div className="phd">= 処理中のキュー</div>
       {queue.slice(0,3).map(q=>{
         const m=STATUS_META[q.status];
         return (
           <div key={q.id} className="qi" style={{opacity:.85}}>
-            <div className="qthumb">{q.thumbnail?<img src={q.thumbnail} alt=""/>:<span className="qthp">▶</span>}</div>
+            <div className="qthumb">{q.thumbnail?<img src={q.thumbnail} alt=""/>:<span className="qthp">&gt;</span>}</div>
             <div className="qbody">
               <div className="qtop">
-                <div style={{flex:1,minWidth:0}}><div className="qtitle">{q.title}</div><div className="qch">📺 {q.channel}</div></div>
+                <div style={{flex:1,minWidth:0}}><div className="qtitle">{q.title}</div><div className="qch">@ {q.channel}</div></div>
                 <div className="sbadge" style={{background:m.color+"20",color:m.color}}>{m.icon} {m.label}</div>
                 <span className="qtag qtag-f">{q.quality}</span>
               </div>
@@ -780,7 +780,7 @@ function NewDownload({ onAdd }) {
           <input className="ifield" placeholder="https://youtube.com/watch?v=... または playlist?list=..." value={url} onChange={e=>setUrl(e.target.value)} onKeyDown={e=>e.key==="Enter"&&url.trim()&&add()}/>
           <button className="upbtn" onClick={paste}>貼り付け</button>
         </div>
-        {ispl&&<div className="hint"><span style={{color:"var(--amber)",flexShrink:0}}>📋</span>プレイリストURLを検出。範囲指定で一括ダウンロードできます。</div>}
+        {ispl&&<div className="hint"><span style={{color:"var(--amber)",flexShrink:0}}>=</span>プレイリストURLを検出。範囲指定で一括ダウンロードできます。</div>}
       </div>
 
       <div className="card">
@@ -802,7 +802,7 @@ function NewDownload({ onAdd }) {
             </div>
             {mode==="range"&&<>
               <div className="ig" style={{flex:"none",width:80}}><label>開始</label><input className="ifield" type="number" min="1" value={ef} onChange={e=>setEf(e.target.value)}/></div>
-              <div style={{paddingBottom:10,color:"var(--text3)"}}>〜</div>
+              <div style={{paddingBottom:10,color:"var(--text3)"}}>~</div>
               <div className="ig" style={{flex:"none",width:80}}><label>終了</label><input className="ifield" type="number" min="1" value={et} onChange={e=>setEt(e.target.value)}/></div>
             </>}
           </div>
@@ -811,7 +811,7 @@ function NewDownload({ onAdd }) {
 
       {/* メタデータ設定 */}
       <div className="card" style={{borderColor:"rgba(156,39,176,.25)",background:"rgba(156,39,176,.04)"}}>
-        <div className="clabel">🏷 メタデータ設定</div>
+        <div className="clabel"># メタデータ設定</div>
         <div style={{display:"flex",flexDirection:"column",gap:0}}>
           <div className="tr" style={{paddingTop:0}}>
             <div>
@@ -845,7 +845,7 @@ function NewDownload({ onAdd }) {
         <div className="prevpath">~/Downloads/YouTube/{url?"チャンネル名/":"—"}</div>
       </div>
       <div style={{marginTop:16,display:"flex",gap:10}}>
-        <button className="btn btn-yt" onClick={add} disabled={!url.trim()}>⬇ ダウンロード開始</button>
+        <button className="btn btn-yt" onClick={add} disabled={!url.trim()}>v ダウンロード開始</button>
         <button className="btn btn-g" onClick={()=>setUrl("")}>クリア</button>
       </div>
     </>
@@ -865,7 +865,7 @@ function QueuePage({ queue, setQueue }) {
     {label:"完了",  items:queue.filter(i=>["done","error"].includes(i.status))},
   ].filter(g=>g.items.length>0);
   if(!queue.length) return <div style={{textAlign:"center",padding:"60px 0",color:"var(--text3)",fontSize:13}}>キューは空です。</div>;
-  return <>{groups.map(g=><div key={g.label}><div className="phd">▤ {g.label}</div>{g.items.map(q=><QItem key={q.id} item={q} onRemove={remove} onPause={pause}/>)}</div>)}</>;
+  return <>{groups.map(g=><div key={g.label}><div className="phd">= {g.label}</div>{g.items.map(q=><QItem key={q.id} item={q} onRemove={remove} onPause={pause}/>)}</div>)}</>;
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
@@ -880,7 +880,7 @@ function SettingsPage() {
         <h3>Discord通知</h3>
         <div className="ig" style={{marginBottom:14}}><label>Webhook URL</label><input className="ifield" placeholder="https://discord.com/api/webhooks/..." value={discord} onChange={e=>setDiscord(e.target.value)}/></div>
         <div className="tr">完了時に通知 <div className={`tog${t.notify?" on":""}`} onClick={()=>tog("notify")}/></div>
-        <div style={{marginTop:12}}><button className="btn btn-g btn-s">🔔 テスト送信</button></div>
+        <div style={{marginTop:12}}><button className="btn btn-g btn-s">! テスト送信</button></div>
       </div>
       <div className="card setcard">
         <h3>ファイル保存</h3>
@@ -888,7 +888,7 @@ function SettingsPage() {
         <div className="tr">自動 mp4 変換 (ffmpeg) <div className={`tog${t.conv?" on":""}`} onClick={()=>tog("conv")}/></div>
       </div>
       <div className="card setcard" style={{borderColor:"rgba(156,39,176,.25)"}}>
-        <h3>🏷 メタデータ（デフォルト）</h3>
+        <h3># メタデータ（デフォルト）</h3>
         <div className="tr">ダウンロード時に自動書き込み <div className={`tog${t.meta?" on":""}`} style={t.meta?{background:"var(--purple)"}:{}} onClick={()=>tog("meta")}/></div>
         <div className="tr">カバーアート埋め込み（covr） <div className={`tog${t.thumb?" on":""}`} style={t.thumb?{background:"var(--purple)"}:{}} onClick={()=>tog("thumb")}/></div>
       </div>
@@ -910,20 +910,20 @@ function TopBar({ stats }) {
       <div className="sp"/>
       <div className="chip">CPU <span className="v">{Math.round(stats.cpu)}%</span></div>
       <div className="chip">MEM <span className="v">{stats.mem}%</span></div>
-      <div className="chip">🌡 <span className={stats.temp>75?"warn":"ok"}>{Math.round(stats.temp)}°C</span></div>
-      <div className="chip">🔋 <span className={stats.battery<20?"warn":"ok"}>{stats.battery}%</span></div>
-      <div className="chip">⬇ <span className="dl">{stats.dlSpeed}</span></div>
+      <div className="chip">T: <span className={stats.temp>75?"warn":"ok"}>{Math.round(stats.temp)}°C</span></div>
+      <div className="chip">B: <span className={stats.battery<20?"warn":"ok"}>{stats.battery}%</span></div>
+      <div className="chip">v <span className="dl">{stats.dlSpeed}</span></div>
     </div>
   );
 }
 function Sidebar({ page, setPage, queueCount }) {
   const nav=[
-    {id:"overview",icon:"⊞",label:"ダッシュボード"},
-    {id:"download",icon:"⊕",label:"新規ダウンロード"},
-    {id:"queue",   icon:"▤", label:"キュー",badge:queueCount},
-    {id:"files",   icon:"⊟",label:"ファイル管理"},
-    {id:"folders", icon:"📁",label:"フォルダ管理"},
-    {id:"settings",icon:"⊙",label:"設定"},
+    {id:"overview",icon:"#",label:"ダッシュボード"},
+    {id:"download",icon:"+",label:"新規ダウンロード"},
+    {id:"queue",   icon:"=", label:"キュー",badge:queueCount},
+    {id:"files",   icon:"-",label:"ファイル管理"},
+    {id:"folders", icon:"[D]",label:"フォルダ管理"},
+    {id:"settings",icon:"o",label:"設定"},
   ];
   return (
     <div className="sidebar">
@@ -1055,7 +1055,7 @@ export default function YTDownloadPanel() {
 
   const activeCount=queue.filter(i=>["downloading","converting","tagging","pending"].includes(i.status)).length;
   const pages={overview:"ダッシュボード",download:"新規ダウンロード",queue:"ダウンロードキュー",files:"ファイル管理",folders:"フォルダ管理",settings:"設定"};
-  const icons={overview:"⊞",download:"⊕",queue:"▤",files:"⊟",folders:"📁",settings:"⊙"};
+  const icons={overview:"#",download:"+",queue:"=",files:"-",folders:"[D]",settings:"o"};
 
   return (
     <div className="yt-module">
@@ -1075,9 +1075,9 @@ export default function YTDownloadPanel() {
       </div>
       <div className="twrap">
         {toasts.map(t=><div key={t.id} className={`toast ${t.type}`}>
-          <span style={{flex:1}}>{t.type==="success"?"✓":t.type==="error"?"✕":t.type==="meta"?"🏷":"ℹ"} {t.msg}</span>
+          <span style={{flex:1}}>{t.type==="success"?"+":t.type==="error"?"x":t.type==="meta"?"#":"i"} {t.msg}</span>
           {t.action&&<button className="toast-action" onClick={()=>{t.action.onClick();dismissToast(t.id);}}>{t.action.label}</button>}
-          <button className="toast-close" onClick={()=>dismissToast(t.id)}>✕</button>
+          <button className="toast-close" onClick={()=>dismissToast(t.id)}>x</button>
         </div>)}
       </div>
     </div>
