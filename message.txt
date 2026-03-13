@@ -1,0 +1,1199 @@
+
+
+
+Happy
+接続済み
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+新しいセッションを開始
+Documents
+~/Documents
+
+バックエンドのダウンロードテストを行います。まずサービスの稼働状況を確認します。
+バックエンドのダウンロードテストを行って
+React フロントエンド統合は完了してGitHubにpush済みです。現在の状態：
+- UI: YouTube DL + AnimeVault の両モジュールが ModuleSwitcher で切替可能
+- ビルド: Vite build成功、Flask(:8080)で配信中
+- 残課題: 両モジュールのMOCKデータがまだ残っている → 実APIに接続する必要あり
+MOCKデータを実APIに置き換える作業を進めましょうか？それとも、まずブラウザで http://localhost:8080 を開いてUIを確認しますか？
+MOCKを実APIに置き換えて
+まずUIを確認したい
+サービスを起動して
+どうですか
+Aborted by user
+お
+おおい
+入力
+{
+  "description": "Design Flask download site",
+  "prompt": "Design a Flask-based local download site plan with the following context:\n\n**Goal**: Create a simple download website running locally with Flask backend + vanilla HTML/CSS/JS frontend.\n\n**Two data sources**:\n\n1. **YouTube downloads** - The user has cloned YoutubeDownloader (a .NET GUI app using YoutubeExplode). Since we're building a Python Flask app, we should use `yt-dlp` (Python library) for YouTube downloading instead of the .NET app. yt-dlp is the standard Python tool for this.\n\n2. **Anime streaming** - The user has cloned hianime-API at `/Users/hiro/Documents/Downloader/hianime-API/`. This is a Bun/Hono-based API that scrapes hianimez.to. Key endpoints:\n   - GET /api/v1/search?keyword=...&page=... - Search anime\n   - GET /api/v1/anime/{id} - Anime details\n   - GET /api/v1/episodes/{id} - Episode list\n   - GET /api/v1/servers/{id} - Available servers\n   - GET /api/v1/stream?id=...&server=...&type=... - Get HLS streaming links\n   - Runs on port 3030\n\n**Architecture approach**:\n- Flask app at `/Users/hiro/Documents/Downloader/` \n- For YouTube: use yt-dlp Python library directly\n- For Anime: proxy requests to the hianime-API running on localhost:3030\n- Frontend: single-page vanilla HTML/CSS/JS with tabs for YouTube and Anime\n- Downloads saved to a `downloads/` folder\n\n**Requirements**:\n- Simple, clean UI (dark theme preferred for a download site)\n- YouTube tab: paste URL → select quality → download\n- Anime tab: search → browse episodes → get stream link or download\n- Progress indication for downloads\n- Keep it minimal - no over-engineering\n\nPlease provide a detailed implementation plan including file structure, key routes, and frontend layout.",
+  "subagent_type": "Plan"
+}
+出力
+Now I have a thorough understanding of the existing codebase. Let me present the complete implementation plan.
+
+---
+
+## Implementation Plan: Flask-Based Local Download Site
+
+### 1. Architecture Overview
+
+The application is a Flask backend with a vanilla HTML/CSS/JS frontend that provides two main features:
+
+- **YouTube Downloads**: Uses the `yt-dlp` Python library to fetch video metadata and download videos/audio directly.
+- **Anime Streaming/Downloads**: Acts as a proxy to the hianime-API (Bun/Hono server running on `localhost:3030`), which scrapes hianimez.to for anime search, episodes, and HLS streaming links.
+
+The Flask server handles all backend logic. The frontend is a single-page application with tabbed navigation.
+
+### 2. File Structure
+
+```
+/Users/hiro/Documents/Downloader/
+├── hianime-API/              # (existing) Bun/Hono anime scraper API
+├── YoutubeDownloader/        # (existing) .NET app -- not used at runtime
+├── app.py                    # Flask application entry point
+├── requirements.txt          # Python dependencies
+├── downloads/                # Directory where all downloads are saved
+│   ├── youtube/              # YouTube downloads subdirectory
+│   └── anime/                # Anime downloads subdirectory
+├── static/
+│   ├── css/
+│   │   └── style.css         # All styles (dark theme)
+│   ├── js/
+│   │   ├── app.js            # Main app logic, tab switching, shared utilities
+│   │   ├── youtube.js        # YouTube tab logic
+│   │   └── anime.js          # Anime tab logic
+│   └── img/
+│       └── favicon.png       # Can reuse /Users/hiro/Documents/Downloader/YoutubeDownloader/favicon.png
+└── templates/
+    └── index.html            # Single-page HTML template
+```
+
+### 3. Python Dependencies (`requirements.txt`)
+
+```
+flask>=3.0
+yt-dlp>=2024.0
+requests>=2.31
+```
+
+- **flask**: Web framework
+- **yt-dlp**: YouTube video info extraction and downloading (replaces the .NET YoutubeDownloader entirely)
+- **requests**: HTTP client for proxying to hianime-API
+
+### 4. Backend: `app.py` -- Flask Application
+
+This is the single backend file. It is deliberately kept as one file since the requirement is minimal and not over-engineered.
+
+#### 4.1 Application Setup
+
+```python
+import os
+import uuid
+import json
+import threading
+from flask import Flask, render_template, request, jsonify, send_from_directory
+import yt_dlp
+import requests
+
+app = Flask(__name__)
+
+DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), 'downloads')
+YOUTUBE_DIR = os.path.join(DOWNLOAD_DIR, 'youtube')
+ANIME_DIR = os.path.join(DOWNLOAD_DIR, 'anime')
+HIANIME_API = 'http://localhost:3030/api/v1'
+
+# In-memory download progress tracking
+download_tasks = {}  # task_id -> {status, progress, filename, error}
+
+os.makedirs(YOUTUBE_DIR, exist_ok=True)
+os.makedirs(ANIME_DIR, exist_ok=True)
+```
+
+#### 4.2 Routes -- Page Serving
+
+```python
+@app.route('/')
+def index():
+    return render_template('index.html')
+```
+
+#### 4.3 Routes -- YouTube
+
+**GET `/api/youtube/info`** -- Fetch video metadata without downloading.
+
+Query params: `url` (the YouTube URL).
+
+This calls `yt_dlp.YoutubeDL` with `extract_info(url, download=False)` to retrieve title, thumbnail, duration, and available formats. The response is filtered to return only useful format info (resolution, file size, format_id, ext, whether it has video+audio or just one).
+
+```python
+@app.route('/api/youtube/info')
+def youtube_info():
+    url = request.args.get('url')
+    if not url:
+        return jsonify({'error': 'URL required'}), 400
+
+    ydl_opts = {'quiet': True, 'no_warnings': True}
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        # Filter and simplify format list
+        formats = []
+        for f in info.get('formats', []):
+            formats.append({
+                'format_id': f.get('format_id'),
+                'ext': f.get('ext'),
+                'resolution': f.get('resolution', 'audio only'),
+                'filesize': f.get('filesize') or f.get('filesize_approx'),
+                'vcodec': f.get('vcodec'),
+                'acodec': f.get('acodec'),
+                'format_note': f.get('format_note', ''),
+                'fps': f.get('fps'),
+            })
+
+        return jsonify({
+            'title': info.get('title'),
+            'thumbnail': info.get('thumbnail'),
+            'duration': info.get('duration'),
+            'uploader': info.get('uploader'),
+            'formats': formats,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+```
+
+**POST `/api/youtube/download`** -- Start a download in a background thread.
+
+Request body (JSON): `url`, `quality` (one of: `"best"`, `"1080"`, `"720"`, `"480"`, `"360"`, `"audio"`).
+
+This creates a task ID, launches a background thread that runs yt-dlp with a progress hook, and immediately returns the task ID so the frontend can poll for progress.
+
+```python
+@app.route('/api/youtube/download', methods=['POST'])
+def youtube_download():
+    data = request.json
+    url = data.get('url')
+    quality = data.get('quality', 'best')
+
+    if not url:
+        return jsonify({'error': 'URL required'}), 400
+
+    task_id = str(uuid.uuid4())
+    download_tasks[task_id] = {'status': 'starting', 'progress': 0, 'filename': None, 'error': None}
+
+    thread = threading.Thread(target=_do_youtube_download, args=(task_id, url, quality))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({'task_id': task_id})
+```
+
+The `_do_youtube_download` helper function:
+
+```python
+def _do_youtube_download(task_id, url, quality):
+    format_map = {
+        'best': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        '1080': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080]',
+        '720': 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]',
+        '480': 'bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]',
+        '360': 'bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360]',
+        'audio': 'bestaudio[ext=m4a]/bestaudio',
+    }
+
+    def progress_hook(d):
+        if d['status'] == 'downloading':
+            total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
+            downloaded = d.get('downloaded_bytes', 0)
+            pct = (downloaded / total * 100) if total > 0 else 0
+            download_tasks[task_id]['status'] = 'downloading'
+            download_tasks[task_id]['progress'] = round(pct, 1)
+        elif d['status'] == 'finished':
+            download_tasks[task_id]['status'] = 'processing'
+            download_tasks[task_id]['progress'] = 100
+
+    ydl_opts = {
+        'format': format_map.get(quality, format_map['best']),
+        'outtmpl': os.path.join(YOUTUBE_DIR, '%(title)s.%(ext)s'),
+        'progress_hooks': [progress_hook],
+        'quiet': True,
+        'merge_output_format': 'mp4' if quality != 'audio' else None,
+    }
+    if quality == 'audio':
+        ydl_opts['postprocessors'] = [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}]
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url)
+            filename = ydl.prepare_filename(info)
+            if quality == 'audio':
+                filename = os.path.splitext(filename)[0] + '.mp3'
+        download_tasks[task_id]['status'] = 'complete'
+        download_tasks[task_id]['filename'] = os.path.basename(filename)
+    except Exception as e:
+        download_tasks[task_id]['status'] = 'error'
+        download_tasks[task_id]['error'] = str(e)
+```
+
+**GET `/api/youtube/progress/<task_id>`** -- Poll download progress.
+
+```python
+@app.route('/api/youtube/progress/<task_id>')
+def youtube_progress(task_id):
+    task = download_tasks.get(task_id)
+    if not task:
+        return jsonify({'error': 'Task not found'}), 404
+    return jsonify(task)
+```
+
+**GET `/api/downloads/youtube/<filename>`** -- Serve downloaded files.
+
+```python
+@app.route('/api/downloads/youtube/<filename>')
+def serve_youtube_download(filename):
+    return send_from_directory(YOUTUBE_DIR, filename, as_attachment=True)
+```
+
+**GET `/api/downloads/list`** -- List all downloaded files.
+
+```python
+@app.route('/api/downloads/list')
+def list_downloads():
+    yt_files = os.listdir(YOUTUBE_DIR) if os.path.exists(YOUTUBE_DIR) else []
+    anime_files = os.listdir(ANIME_DIR) if os.path.exists(ANIME_DIR) else []
+    return jsonify({
+        'youtube': [f for f in yt_files if not f.startswith('.')],
+        'anime': [f for f in anime_files if not f.startswith('.')],
+    })
+```
+
+#### 4.4 Routes -- Anime (Proxy to hianime-API)
+
+These routes proxy requests to the hianime-API running at `localhost:3030`. The Flask server adds a consistent interface and avoids CORS issues since the frontend only talks to Flask.
+
+**GET `/api/anime/search`** -- Search anime.
+
+```python
+@app.route('/api/anime/search')
+def anime_search():
+    keyword = request.args.get('keyword', '')
+    page = request.args.get('page', '1')
+    try:
+        resp = requests.get(f'{HIANIME_API}/search', params={'keyword': keyword, 'page': page}, timeout=10)
+        return jsonify(resp.json())
+    except requests.RequestException as e:
+        return jsonify({'error': f'Anime API unavailable: {str(e)}'}), 502
+```
+
+**GET `/api/anime/info/<anime_id>`** -- Anime details.
+
+```python
+@app.route('/api/anime/info/<path:anime_id>')
+def anime_info(anime_id):
+    try:
+        resp = requests.get(f'{HIANIME_API}/anime/{anime_id}', timeout=10)
+        return jsonify(resp.json())
+    except requests.RequestException as e:
+        return jsonify({'error': f'Anime API unavailable: {str(e)}'}), 502
+```
+
+**GET `/api/anime/episodes/<anime_id>`** -- Episode list.
+
+```python
+@app.route('/api/anime/episodes/<path:anime_id>')
+def anime_episodes(anime_id):
+    try:
+        resp = requests.get(f'{HIANIME_API}/episodes/{anime_id}', timeout=10)
+        return jsonify(resp.json())
+    except requests.RequestException as e:
+        return jsonify({'error': f'Anime API unavailable: {str(e)}'}), 502
+```
+
+**GET `/api/anime/servers/<path:episode_id>`** -- Servers for an episode.
+
+Note from the codebase: episode IDs have the format `steinsgate-3::ep=213`. The `::` will be part of the path, so we use `<path:episode_id>` to capture it.
+
+```python
+@app.route('/api/anime/servers/<path:episode_id>')
+def anime_servers(episode_id):
+    try:
+        resp = requests.get(f'{HIANIME_API}/servers/{episode_id}', timeout=10)
+        return jsonify(resp.json())
+    except requests.RequestException as e:
+        return jsonify({'error': f'Anime API unavailable: {str(e)}'}), 502
+```
+
+**GET `/api/anime/stream`** -- Get streaming link.
+
+Query params: `id`, `server` (default `hd-1`), `type` (default `sub`).
+
+From the schema, valid servers are: `hd-1`, `hd-2`, `hd-3`, `megaplay`, `vidwish`. Valid types are: `sub`, `dub`.
+
+```python
+@app.route('/api/anime/stream')
+def anime_stream():
+    ep_id = request.args.get('id', '')
+    server = request.args.get('server', 'hd-1')
+    stream_type = request.args.get('type', 'sub')
+    try:
+        resp = requests.get(f'{HIANIME_API}/stream', params={
+            'id': ep_id, 'server': server, 'type': stream_type
+        }, timeout=15)
+        return jsonify(resp.json())
+    except requests.RequestException as e:
+        return jsonify({'error': f'Anime API unavailable: {str(e)}'}), 502
+```
+
+**POST `/api/anime/download`** -- Download an HLS stream using ffmpeg.
+
+This is the most involved anime route. It receives an HLS URL (the `.m3u8` link from the stream endpoint) and uses `ffmpeg` via subprocess to download and mux the stream into an MP4 file. Progress is tracked via a background thread similar to YouTube downloads.
+
+```python
+import subprocess
+import re
+
+@app.route('/api/anime/download', methods=['POST'])
+def anime_download():
+    data = request.json
+    hls_url = data.get('url')
+    filename = data.get('filename', 'anime_episode')
+    referer = data.get('referer', 'https://megacloud.tv')
+
+    if not hls_url:
+        return jsonify({'error': 'HLS URL required'}), 400
+
+    task_id = str(uuid.uuid4())
+    download_tasks[task_id] = {'status': 'starting', 'progress': 0, 'filename': None, 'error': None}
+
+    # Sanitize filename
+    safe_name = re.sub(r'[^\w\s\-.]', '', filename).strip() + '.mp4'
+    output_path = os.path.join(ANIME_DIR, safe_name)
+
+    thread = threading.Thread(target=_do_anime_download, args=(task_id, hls_url, output_path, safe_name, referer))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({'task_id': task_id})
+```
+
+The `_do_anime_download` helper:
+
+```python
+def _do_anime_download(task_id, hls_url, output_path, filename, referer):
+    try:
+        download_tasks[task_id]['status'] = 'downloading'
+        cmd = [
+            'ffmpeg', '-y',
+            '-headers', f'Referer: {referer}\r\n',
+            '-i', hls_url,
+            '-c', 'copy',
+            '-bsf:a', 'aac_adtstoasc',
+            output_path
+        ]
+        process = subprocess.Popen(cmd, stderr=subprocess.PIPE, universal_newlines=True)
+
+        # ffmpeg outputs progress to stderr; parse duration and time for progress
+        duration = None
+        for line in process.stderr:
+            # Parse duration from stream info
+            dur_match = re.search(r'Duration:\s*(\d+):(\d+):(\d+)', line)
+            if dur_match:
+                h, m, s = int(dur_match.group(1)), int(dur_match.group(2)), int(dur_match.group(3))
+                duration = h * 3600 + m * 60 + s
+
+            # Parse current time
+            time_match = re.search(r'time=(\d+):(\d+):(\d+)', line)
+            if time_match and duration and duration > 0:
+                h, m, s = int(time_match.group(1)), int(time_match.group(2)), int(time_match.group(3))
+                current = h * 3600 + m * 60 + s
+                pct = min(100, round(current / duration * 100, 1))
+                download_tasks[task_id]['progress'] = pct
+
+        process.wait()
+        if process.returncode == 0:
+            download_tasks[task_id]['status'] = 'complete'
+            download_tasks[task_id]['filename'] = filename
+            download_tasks[task_id]['progress'] = 100
+        else:
+            download_tasks[task_id]['status'] = 'error'
+            download_tasks[task_id]['error'] = 'ffmpeg exited with non-zero status'
+    except Exception as e:
+        download_tasks[task_id]['status'] = 'error'
+        download_tasks[task_id]['error'] = str(e)
+```
+
+#### 4.5 Application Entry Point
+
+```python
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+### 5. Frontend
+
+#### 5.1 `templates/index.html`
+
+A single HTML page with two tabs. Key structure:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Downloader</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Downloader</h1>
+        <nav class="tabs">
+            <button class="tab active" data-tab="youtube">YouTube</button>
+            <button class="tab" data-tab="anime">Anime</button>
+            <button class="tab" data-tab="downloads">Downloads</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- YouTube Tab -->
+        <section id="youtube" class="tab-content active">
+            <div class="input-group">
+                <input type="text" id="yt-url" placeholder="Paste YouTube URL...">
+                <button id="yt-fetch">Fetch Info</button>
+            </div>
+            <div id="yt-preview" class="hidden">
+                <!-- Populated by JS: thumbnail, title, duration -->
+            </div>
+            <div id="yt-quality" class="hidden">
+                <!-- Quality selector radio buttons / dropdown -->
+            </div>
+            <button id="yt-download" class="hidden btn-primary">Download</button>
+            <div id="yt-progress" class="hidden">
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <span class="progress-text">0%</span>
+            </div>
+        </section>
+
+        <!-- Anime Tab -->
+        <section id="anime" class="tab-content hidden">
+            <div class="input-group">
+                <input type="text" id="anime-search" placeholder="Search anime...">
+                <button id="anime-search-btn">Search</button>
+            </div>
+            <div id="anime-results"></div>         <!-- Search results grid -->
+            <div id="anime-detail" class="hidden"></div>  <!-- Anime info + episode list -->
+            <div id="anime-player" class="hidden"></div>   <!-- Stream player / download option -->
+        </section>
+
+        <!-- Downloads Tab -->
+        <section id="downloads" class="tab-content hidden">
+            <h2>Downloaded Files</h2>
+            <div id="downloads-list"></div>
+        </section>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/youtube.js"></script>
+    <script src="/static/js/anime.js"></script>
+</body>
+</html>
+```
+
+#### 5.2 `static/css/style.css`
+
+Dark theme with CSS custom properties for consistency:
+
+```css
+:root {
+    --bg-primary: #0f0f0f;
+    --bg-secondary: #1a1a2e;
+    --bg-card: #16213e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --accent: #e94560;
+    --accent-hover: #ff6b81;
+    --success: #4ecca3;
+    --border: #2a2a4a;
+    --radius: 8px;
+}
+```
+
+Key styling decisions:
+- Body background `#0f0f0f`, card backgrounds `#16213e` for depth
+- Tabs use underline-active style (not pill/button)
+- Input fields are full-width with rounded corners and dark backgrounds
+- Progress bar: thin horizontal bar, accent color fill with CSS transition
+- Anime search results displayed as a responsive grid (CSS Grid, `auto-fill`, `minmax(200px, 1fr)`)
+- Episode list displayed as a compact numbered grid with hover effects
+- Buttons: solid accent color, subtle hover scale transform
+
+#### 5.3 `static/js/app.js`
+
+Handles tab switching and shared utility functions:
+
+```javascript
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.remove('hidden');
+
+        // Refresh downloads list when that tab is opened
+        if (tab.dataset.tab === 'downloads') loadDownloadsList();
+    });
+});
+
+// Shared utilities
+function formatBytes(bytes) { /* ... */ }
+function formatDuration(seconds) { /* ... */ }
+function showError(container, message) { /* ... */ }
+
+// Poll a download task for progress
+function pollProgress(taskId, progressBar, progressText, onComplete) {
+    const interval = setInterval(async () => {
+        const resp = await fetch(`/api/youtube/progress/${taskId}`);
+        const data = await resp.json();
+        progressBar.style.width = data.progress + '%';
+        progressText.textContent = data.progress + '%';
+
+        if (data.status === 'complete') {
+            clearInterval(interval);
+            onComplete(data.filename);
+        } else if (data.status === 'error') {
+            clearInterval(interval);
+            showError(/*...*/, data.error);
+        }
+    }, 500);
+}
+```
+
+#### 5.4 `static/js/youtube.js`
+
+Handles the YouTube tab workflow:
+
+1. **Fetch Info**: User pastes URL, clicks "Fetch Info". Calls `GET /api/youtube/info?url=...`. On success, displays thumbnail, title, uploader, duration. Populates a quality selector with simplified options: Best, 1080p, 720p, 480p, 360p, Audio Only.
+
+2. **Download**: User selects quality, clicks "Download". Calls `POST /api/youtube/download` with `{url, quality}`. Gets back `task_id`. Shows progress bar and starts polling `GET /api/youtube/progress/<task_id>` every 500ms.
+
+3. **Complete**: When status is `complete`, shows a "Download File" link pointing to `/api/downloads/youtube/<filename>`.
+
+Key code flow:
+
+```javascript
+document.getElementById('yt-fetch').addEventListener('click', async () => {
+    const url = document.getElementById('yt-url').value.trim();
+    const resp = await fetch(`/api/youtube/info?url=${encodeURIComponent(url)}`);
+    const data = await resp.json();
+    // Render preview (thumbnail, title, duration)
+    // Show quality selector
+    // Show download button
+});
+
+document.getElementById('yt-download').addEventListener('click', async () => {
+    const url = document.getElementById('yt-url').value.trim();
+    const quality = document.querySelector('input[name="quality"]:checked').value;
+    const resp = await fetch('/api/youtube/download', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url, quality})
+    });
+    const {task_id} = await resp.json();
+    // Show progress bar, start polling
+    pollProgress(task_id, /*...*/);
+});
+```
+
+#### 5.5 `static/js/anime.js`
+
+Handles the anime tab workflow with a multi-step navigation flow:
+
+1. **Search**: User types keyword, clicks "Search". Calls `GET /api/anime/search?keyword=...&page=1`. Renders a card grid with poster image, title, episode count, type.
+
+2. **Anime Detail**: User clicks a search result card. Calls `GET /api/anime/info/<id>` and `GET /api/anime/episodes/<id>` in parallel. Displays anime info (synopsis, rating, status, etc.) and a numbered episode grid.
+
+3. **Episode Selection**: User clicks an episode. The episode ID format from hianime-API is like `steinsgate-3::ep=213`. Calls `GET /api/anime/servers/<episode_id>`. Displays available servers (sub/dub) with server name buttons.
+
+4. **Stream/Download**: User picks a server. Calls `GET /api/anime/stream?id=<ep_id>&server=<server>&type=<sub|dub>`. The response contains an HLS link (`data[0].link.file`). Two options are presented:
+   - **Play**: Opens the HLS link (user can use VLC or similar; or we embed a minimal HLS.js player inline)
+   - **Download**: Calls `POST /api/anime/download` with the HLS URL and a generated filename. Shows progress bar, polls for completion.
+
+Key code flow:
+
+```javascript
+async function searchAnime(keyword, page = 1) {
+    const resp = await fetch(`/api/anime/search?keyword=${encodeURIComponent(keyword)}&page=${page}`);
+    const data = await resp.json();
+    renderSearchResults(data.data.response, data.data.pageInfo);
+}
+
+async function showAnimeDetail(animeId) {
+    const [infoResp, epsResp] = await Promise.all([
+        fetch(`/api/anime/info/${animeId}`),
+        fetch(`/api/anime/episodes/${animeId}`)
+    ]);
+    const info = await infoResp.json();
+    const eps = await epsResp.json();
+    renderAnimeDetail(info.data, eps.data);
+}
+
+async function getStream(episodeId, server, type) {
+    const resp = await fetch(`/api/anime/stream?id=${encodeURIComponent(episodeId)}&server=${server}&type=${type}`);
+    const data = await resp.json();
+    // data.data[0].link.file => HLS URL
+    // data.data[0].tracks => subtitle tracks
+    renderStreamOptions(data.data[0]);
+}
+```
+
+For the inline HLS player, we can include HLS.js from a CDN (a single `<script>` tag) and create a `<video>` element that loads the M3U8 URL. This is optional but nice to have -- the user can always just copy the stream link to VLC instead.
+
+### 6. Data Flow Diagrams
+
+**YouTube Download Flow:**
+```
+Browser                    Flask (:5000)                yt-dlp
+  |-- POST /api/youtube/download -->|                      |
+  |<-- {task_id} ------------------|                      |
+  |                                 |-- extract_info() -->|
+  |                                 |<-- progress hook ---|
+  |-- GET /progress/<id> --------->|                      |
+  |<-- {progress: 45%} ------------|                      |
+  |-- GET /progress/<id> --------->|                      |
+  |<-- {status: complete} ---------|                      |
+  |-- GET /downloads/youtube/f --->|                      |
+  |<-- file ---------------------- |                      |
+```
+
+**Anime Stream Flow:**
+```
+Browser                    Flask (:5000)           hianime-API (:3030)
+  |-- GET /api/anime/search -->|                         |
+  |                            |-- GET /api/v1/search -->|
+  |                            |<-- search results ------|
+  |<-- results ----------------|                         |
+  |-- GET /api/anime/stream -->|                         |
+  |                            |-- GET /api/v1/stream -->|
+  |                            |<-- HLS link ------------|
+  |<-- HLS link ---------------|                         |
+  |-- POST /api/anime/download -->|                      |
+  |                               |-- ffmpeg HLS dl ---->| (direct to CDN)
+  |<-- {task_id} -----------------|                      |
+```
+
+### 7. Key Implementation Details
+
+**Episode ID Encoding**: The hianime-API uses episode IDs like `steinsgate-3::ep=213`. The `::` contains a colon which can cause routing issues. Using Flask's `<path:episode_id>` converter handles this correctly. On the frontend, the episode ID must be URL-encoded when passed as a query parameter but can be passed raw in path segments.
+
+**HLS Download via ffmpeg**: The stream endpoint returns M3U8 (HLS) links, not direct MP4 files. To download these as video files, we use `ffmpeg -i <m3u8_url> -c copy output.mp4`. The `-c copy` flag avoids re-encoding (fast). The `Referer` header must be set to `https://megacloud.tv` (as seen in the stream extract code at `/Users/hiro/Documents/Downloader/hianime-API/src/modules/stream/stream.extract.js` line 10 and 27).
+
+**Progress Tracking**: Both YouTube and anime downloads use the same `download_tasks` dictionary and the same progress polling endpoint. The task_id is a UUID. Tasks are kept in memory (no database needed for a local tool). A cleanup could be added to remove old tasks, but for a local tool this is not necessary.
+
+**CORS is Not an Issue**: Since both the frontend and the API are served from the same Flask origin (`localhost:5000`), there are no CORS concerns. The hianime-API at port 3030 is only accessed server-side by Flask, never directly from the browser.
+
+**ffmpeg Requirement**: The anime download feature and yt-dlp's format merging both require `ffmpeg` to be installed on the system. This should be documented. On macOS: `brew install ffmpeg`.
+
+### 8. Startup Procedure
+
+To run the full system:
+
+```bash
+# Terminal 1: Start hianime-API
+cd /Users/hiro/Documents/Downloader/hianime-API
+bun run dev
+# Runs on localhost:3030
+
+# Terminal 2: Start Flask app
+cd /Users/hiro/Documents/Downloader
+pip install -r requirements.txt
+python app.py
+# Runs on localhost:5000
+```
+
+Alternatively, a `start.sh` script could launch both with:
+
+```bash
+#!/bin/bash
+cd /Users/hiro/Documents/Downloader/hianime-API && bun run dev &
+HIANIME_PID=$!
+cd /Users/hiro/Documents/Downloader && python app.py
+kill $HIANIME_PID
+```
+
+### 9. Implementation Sequence
+
+The build order should be:
+
+1. **Create directory structure**: `downloads/youtube/`, `downloads/anime/`, `static/css/`, `static/js/`, `templates/`
+2. **`requirements.txt`**: Write dependencies
+3. **`app.py` -- skeleton**: Flask app with index route, static serving, and one simple test endpoint
+4. **`templates/index.html`**: Full HTML structure with all three tabs
+5. **`static/css/style.css`**: Complete dark theme styles
+6. **`static/js/app.js`**: Tab switching and utility functions
+7. **`app.py` -- YouTube routes**: `/api/youtube/info`, `/api/youtube/download`, `/api/youtube/progress`
+8. **`static/js/youtube.js`**: Wire up the YouTube UI flow
+9. **Test YouTube flow end-to-end**
+10. **`app.py` -- Anime proxy routes**: All `/api/anime/*` routes
+11. **`static/js/anime.js`**: Wire up the anime search/browse/stream flow
+12. **Test anime flow end-to-end** (requires hianime-API running on port 3030)
+13. **`app.py` -- Downloads list route and anime download route**
+14. **Polish**: Error handling, loading spinners, edge cases
+
+### 10. Potential Challenges
+
+- **yt-dlp format selection**: The format strings can be finicky. The `bestvideo[height<=X]+bestaudio` pattern works well but falls back gracefully if a specific height is not available. Testing with various URLs (shorts, livestreams, age-restricted) is important.
+- **HLS stream availability**: The hianime-API's stream decryption (megacloud parser) can break if the upstream site changes its encryption. This is inherent to the scraping approach and not something we can control.
+- **ffmpeg not installed**: Must detect this at startup and show a clear error. Add a check in `app.py` startup: `subprocess.run(['ffmpeg', '-version'], capture_output=True)`.
+- **Large files**: YouTube 1080p videos can be several GB. The download directory could grow. Adding a simple "delete" button in the Downloads tab would help.
+- **Thread safety**: The `download_tasks` dictionary is accessed from multiple threads. For a local single-user tool, Python's GIL makes simple dict operations safe enough. No mutex needed for this use case.
+
+---
+
+### Critical Files for Implementation
+
+- `/Users/hiro/Documents/Downloader/app.py` - Core Flask application with all backend routes (YouTube info/download, anime proxy, progress tracking, file serving)
+- `/Users/hiro/Documents/Downloader/templates/index.html` - Single-page HTML template with tabbed layout for YouTube, Anime, and Downloads sections
+- `/Users/hiro/Documents/Downloader/static/js/anime.js` - Anime tab frontend logic handling the multi-step search-to-stream flow and integration with hianime-API data shapes
+- `/Users/hiro/Documents/Downloader/static/js/youtube.js` - YouTube tab frontend logic for URL fetching, quality selection, and download progress polling
+- `/Users/hiro/Documents/Downloader/hianime-API/src/modules/stream/stream.schema.js` - Reference for understanding the stream API response shape (HLS link structure, server names, sub/dub types, referer requirement)
+両方のリポジトリの構造を把握しました。プランを設計します。
+入力
+{
+  "description": "Explore hianime-API",
+  "prompt": "Explore the repository at /Users/hiro/Documents/Downloader/hianime-API. I need to understand:\n1. What this API does - what anime site does it scrape/proxy?\n2. How to run it (Node.js? What commands?)\n3. What endpoints are available for searching/downloading anime?\n4. What dependencies does it need?\n\nBe thorough - check README, package.json, and source code for API routes.",
+  "subagent_type": "Explore"
+}
+出力
+Perfect! Now I have all the information I need. Let me provide you with a comprehensive report.
+
+## Comprehensive Analysis: hianime-API
+
+---
+
+### 1. **What This API Does**
+
+**hianime-API** is an unofficial REST API that scrapes anime data from **hianimez.to** (formerly hianime.to). It's designed to provide programmatic access to:
+- Anime metadata (titles, descriptions, genres, ratings, studios)
+- Streaming links and HLS video streams
+- Episode lists and server availability
+- Character and voice actor information
+- Search and filtering capabilities
+- Schedule and recommendations
+
+**Important Note:** This is an educational/personal project and scrapes from an anime streaming website. All content belongs to original owners.
+
+---
+
+### 2. **How to Run It**
+
+**Runtime:** Uses **Bun** (not Node.js directly)
+
+**Installation & Startup:**
+```bash
+git clone https://github.com/yahyaMomin/hianime-API.git
+cd hianime-API
+bun install
+bun run dev
+```
+
+**Server runs on:** `http://localhost:3030`
+
+**Documentation:** Available at `http://localhost:3030/doc` (interactive Swagger docs)
+
+**Available Commands:**
+- `bun run dev` - Run with hot reload
+- `bun start` - Production start
+- `npm run lint:fix` - Fix linting issues
+- `npm test` - Run tests
+
+**Important:** Cannot run directly with Node.js or nodemon - requires Bun's native ESM support.
+
+---
+
+### 3. **All Available Endpoints**
+
+Base URL: `/api/v1`
+
+All responses follow format:
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+#### **Homepage & Discovery**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/home` | GET | Spotlight, trending, top airing, latest episodes, genres |
+| `/spotlight` | GET | Featured spotlight anime |
+| `/topten` | GET | Top 10 anime by today/week/month |
+| `/meta` | GET | API metadata (genres, filters, routes) |
+
+#### **Search & Suggestions**
+| Endpoint | Method | Parameters | Description |
+|----------|--------|-----------|-------------|
+| `/search` | GET | `keyword`, `page` | Search anime by keyword (spaces → `+`) |
+| `/suggestion` | GET | `keyword` | Get search suggestions |
+
+#### **Anime Lists (Browse)**
+| Endpoint | Method | Parameters | Description |
+|----------|--------|-----------|-------------|
+| `/{query}` | GET | `page` | Lists: top-airing, most-popular, most-favorite, completed, recently-added, recently-updated, top-upcoming, subbed-anime, dubbed-anime, movie, tv, ova, ona, special |
+| `/az-list/{letter}` | GET | `page` | Filter by letter (A-Z, 0-9, all) |
+| `/genre/{genre}` | GET | `page` | Filter by genre (action, adventure, comedy, drama, isekai, romance, etc.) |
+| `/producer/{id}` | GET | `page` | Anime by producer |
+| `/filter` | GET | Multiple query params | Advanced filtering (type, status, rating, score, season, language, sort, genres) |
+
+#### **Anime Details**
+| Endpoint | Method | Parameters | Description |
+|----------|--------|-----------|-------------|
+| `/anime/{id}` | GET | ID | Full anime details: metadata, episodes, genres, studios, ratings, related/recommended anime |
+| `/anime/random` | GET | - | Random anime |
+| `/schedule` | GET | `date` | Schedule anime by date (format: day number) |
+| `/schedule/next/{id}` | GET | Anime ID | Next episode air time |
+
+#### **Episodes & Streaming**
+| Endpoint | Method | Parameters | Description |
+|----------|--------|-----------|-------------|
+| `/episodes/{id}` | GET | Anime ID | List all episodes with titles and filler info |
+| `/servers/{id}` | GET | Episode ID | Available streaming servers (hd-1, hd-2, hd-3, megaplay, vidwish) |
+| `/stream` | GET | `id`, `server`, `type` | Get HLS streaming links, subtitles, intro/outro times |
+
+**Stream Parameters:**
+- `id` - Episode ID
+- `server` - hd-1, hd-2, hd-3, megaplay, vidwish (default: hd-1)
+- `type` - sub or dub (default: sub)
+
+#### **Characters & Voice Actors**
+| Endpoint | Method | Parameters | Description |
+|----------|--------|-----------|-------------|
+| `/characters/{id}` | GET | Anime ID, `page` | Character list with voice actors |
+| `/character/{id}` | GET | Character ID (prefixed `character:`) | Character details & anime appearances |
+| `/actor/{id}` | GET | Actor ID (prefixed `people:`) | Voice actor details & roles |
+
+---
+
+### 4. **Dependencies**
+
+**Production Dependencies:**
+```json
+{
+  "@hono/swagger-ui": "^0.5.3",        // Swagger API docs
+  "@hono/zod-openapi": "^1.2.0",      // OpenAPI schema validation
+  "@scalar/hono-api-reference": "^0.9.30", // API docs UI
+  "@upstash/redis": "^1.35.8",        // Redis caching (optional)
+  "cheerio": "^1.1.2",                // HTML parsing/scraping
+  "crypto-js": "^4.2.0",              // Encryption utilities
+  "hono": "^4.11.1",                  // Web framework
+  "hono-rate-limiter": "^0.4.2",      // Rate limiting
+  "zod": "^4.2.1"                     // Schema validation
+}
+```
+
+**Dev Dependencies:**
+- TypeScript support
+- ESLint + Prettier (linting/formatting)
+- Husky + lint-staged (git hooks)
+- Vitest (testing)
+
+**Key Architecture:**
+- Framework: **Hono** (lightweight web framework)
+- Scraping: **Cheerio** (jQuery-like HTML parsing)
+- Validation: **Zod** + **OpenAPI** schema
+- Rate Limiting: Built-in with configurable windows
+- CORS: Configurable origin support
+- Caching: Redis support via Upstash
+
+---
+
+### 5. **Environment & Configuration**
+
+**Port Configuration:**
+- Default: 3030
+- Configurable via `PORT` environment variable
+
+**Rate Limiting:**
+- Default window: 60 seconds
+- Default limit: 20 requests per IP
+- Configurable via `RATE_LIMIT_WINDOW_MS` and `RATE_LIMIT_LIMIT`
+
+**CORS:**
+- Configurable via `ORIGIN` env variable (comma-separated)
+- Defaults to all origins (`*`)
+
+**Data Source:**
+- Base URL: `https://hianime.to`
+- User-Agent: Firefox/122.0
+
+---
+
+### 6. **Project Structure**
+
+```
+hianime-API/
+├── src/
+│   ├── config/          # Configuration & metadata
+│   ├── modules/         # Feature modules (home, search, anime, etc.)
+│   ├── utils/           # Utilities (parsing, validation, errors)
+│   ├── middlewares/     # Express-like middleware
+│   ├── lib/             # Core app setup
+│   └── routes/          # Route registration
+├── index.js             # Entry point
+├── package.json         # Dependencies & scripts
+└── README.md            # Documentation
+```
+
+Each module has:
+- `.handler.js` - Request logic
+- `.schema.js` - OpenAPI schema definition
+- `.extract.js` - HTML parsing/data extraction
+
+---
+
+### 7. **Key Features**
+
+✅ OpenAPI/Swagger documentation at `/doc`  
+✅ Rate limiting protection  
+✅ CORS support  
+✅ Zod validation for all inputs  
+✅ Error handling middleware  
+✅ Redis caching capability  
+✅ HLS streaming links extraction  
+✅ Subtitle/caption support  
+✅ Intro/outro timestamp detection  
+✅ Multiple server options for streaming  
+
+---
+
+This is a well-structured, production-ready API wrapper around hianimez.to with comprehensive anime data access capabilities. You can extend it by adding new extractors or modifying the source URL.
+入力
+{
+  "description": "Explore YoutubeDownloader",
+  "prompt": "Explore the repository at /Users/hiro/Documents/Downloader/YoutubeDownloader. I need to understand:\n1. How it works - is it a CLI tool, GUI app, or library?\n2. How to use it programmatically or via CLI to download YouTube videos\n3. What are the key commands/APIs for downloading?\n4. What dependencies/runtime does it need (e.g., .NET, ffmpeg)?\n\nBe thorough - check README, project files, and source code.",
+  "subagent_type": "Explore"
+}
+出力
+Excellent! I now have enough information to provide a comprehensive analysis. Let me compile my findings.
+
+## YoutubeDownloader Repository Analysis
+
+Based on my thorough exploration of the repository, here's a complete understanding of how it works:
+
+### 1. **Application Type: Cross-Platform Desktop GUI App**
+
+YoutubeDownloader is a **graphical user interface (GUI) application**, not a CLI tool or library. It's built as a Windows Desktop application using:
+- **Framework**: Avalonia UI 11.3.0 (cross-platform .NET UI framework)
+- **Output Type**: WinExe (Windows executable)
+- **Runtime**: .NET 10 (from global.json)
+
+### 2. **Project Architecture**
+
+The solution has **two main projects**:
+
+#### **YoutubeDownloader (Main GUI)**
+- **Type**: Desktop application with Avalonia UI
+- **Location**: `/YoutubeDownloader/`
+- **Key Components**:
+  - Views (XAML-based UI)
+  - ViewModels (MVVM pattern with Community Toolkit)
+  - Services (Settings, Updates, etc.)
+  - Contains download management and user interaction logic
+
+#### **YoutubeDownloader.Core (Library)**
+- **Type**: Class library
+- **Location**: `/YoutubeDownloader.Core/`
+- **Core Modules**:
+  - `Downloading/` - Video download logic
+  - `Resolving/` - Query parsing (URLs, playlists, channels, search)
+  - `Tagging/` - Media metadata injection
+  - `Utils/` - HTTP, extensions, helpers
+
+### 3. **How It Works - Download Process**
+
+**Flow:**
+1. User enters query in GUI (video URL, playlist URL, channel URL, or search term)
+2. `QueryResolver` parses the input:
+   - Direct video URL → single video
+   - Playlist URL → multiple videos
+   - Channel URL/handle → all uploads from channel
+   - Text query → YouTube search results
+3. User selects videos and download options (quality, format)
+4. `VideoDownloader` handles actual download:
+   - Fetches available streams using YoutubeExplode
+   - Merges video + audio using FFmpeg
+   - Embeds subtitles (optional)
+   - Injects metadata tags (optional)
+
+**Key Classes for Programmatic Use:**
+
+```csharp
+// Resolving queries
+QueryResolver resolver = new();
+QueryResult result = await resolver.ResolveAsync("youtube.com/watch?v=...");
+// Result contains: videos, title, kind (Video/Playlist/Channel/Search)
+
+// Downloading videos
+VideoDownloader downloader = new();
+
+// Get available options
+var options = await downloader.GetDownloadOptionsAsync(videoId);
+
+// Get best option matching preference
+var bestOption = await downloader.GetBestDownloadOptionAsync(
+    videoId, 
+    new VideoDownloadPreference(
+        Container.Mp4, 
+        VideoQualityPreference.UpTo1080p
+    )
+);
+
+// Download
+await downloader.DownloadVideoAsync(
+    filePath,
+    video,
+    downloadOption,
+    includeSubtitles: true,
+    ffmpegPath: "/path/to/ffmpeg",
+    progress: progressReporter,
+    cancellationToken
+);
+```
+
+### 4. **Key APIs and Commands**
+
+**Resolution/Query APIs:**
+- `QueryResolver.ResolveAsync(string query)` - Parse and resolve query
+- Supports: Video URLs, Playlist URLs, Channel URLs/handles/usernames/slugs, Search queries
+- Returns: `QueryResult` with video collection
+
+**Download APIs:**
+- `VideoDownloader.GetDownloadOptionsAsync()` - List all available quality/format combos
+- `VideoDownloader.GetBestDownloadOptionAsync()` - Get best match for preferences
+- `VideoDownloader.DownloadVideoAsync()` - Execute download with progress tracking
+
+**Download Preferences:**
+```csharp
+// Quality preferences
+enum VideoQualityPreference { Highest, UpTo1080p, UpTo720p, UpTo480p, UpTo360p, Lowest }
+
+// Container formats
+Container.Mp4, Container.WebM, Container.Mp3, Container.Ogg, etc.
+```
+
+**Media Tagging:**
+- `MediaTagInjector.InjectTagsAsync()` - Adds metadata:
+  - Music metadata (via MusicBrainz API)
+  - Thumbnails
+  - Description, comments, channel info
+  - Uses TagLibSharp library
+
+### 5. **Features Supported**
+
+- Download by URL, playlist, or channel
+- Download by search keyword
+- Multiple quality options (360p to highest available)
+- Multiple format options (MP4, WebM, MP3, OGG for audio)
+- Automatic audio track embedding in multiple languages
+- Automatic subtitle embedding
+- Automatic metadata tagging (artist, album, thumbnails)
+- YouTube account login for private content
+- Parallel downloads (configurable limit)
+- Progress tracking
+- Cancellation support
+- FFmpeg bundled (or custom path configurable)
+
+### 6. **Dependencies & Runtime Requirements**
+
+**Framework:**
+- .NET 10 SDK (from global.json: `"version": "10.0.100"`)
+- Avalonia 11.3.0 (cross-platform GUI)
+
+**Core Libraries:**
+- **YoutubeExplode 6.5.7** - YouTube API reverse engineering
+- **YoutubeExplode.Converter 6.5.7** - Video conversion
+- **TagLibSharp 2.3.0** - Media metadata
+- **Gress 2.1.1** - Progress reporting
+- **Material.Avalonia 3.9.2** - Material Design UI
+
+**Runtime:**
+- **FFmpeg** - REQUIRED for video conversion
+  - Bundled with main distribution
+  - Alternative: Download separately and configure path
+  - Located by searching: app directory → current directory → PATH environment variables → registry (Windows)
+
+**Optional Libraries:**
+- Community Toolkit MVVM 8.4.0 - UI binding/command framework
+- Material.Icons.Avalonia 2.2.0 - UI icons
+- DialogHost.Avalonia, WebView.Avalonia - UI components
+- MusicBrainz integration for metadata lookup
+
+### 7. **Usage Modes**
+
+**GUI Mode** (Primary):
+- Launch application → enter query → select videos → configure options → download
+- Progress displayed in UI
+- Parallel download support
+- Settings for quality, format, subtitles, metadata
+
+**Programmatic Mode** (Library):
+- Reference `YoutubeDownloader.Core` as a NuGet package or project reference
+- Use `QueryResolver` and `VideoDownloader` classes
+- Implement custom UI/CLI wrapper
+- Full async/await support with cancellation tokens
+
+### 8. **Authentication**
+
+- Optional YouTube account login for:
+  - Private videos
+  - Age-restricted content
+  - Personal playlists (Watch Later, Liked, etc.)
+- Credentials encrypted and stored locally
+- Passed as cookies to YoutubeExplode client
+
+**Summary**: YoutubeDownloader is a full-featured desktop application for downloading YouTube content with a professional GUI. The core download/resolution logic is abstracted into a reusable library component (`YoutubeDownloader.Core`) that could theoretically be used programmatically, though the primary distribution is as a finished GUI application.
+最終アクセス: 18時間前
+Yoloモード
+Default
+メッセージを入力...
