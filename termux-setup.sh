@@ -1,4 +1,4 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/usr/bin/env bash
 # ============================================================
 #  Downloader - Termux ワンタッチセットアップ
 #  コピペするだけで全部動きます (root化不要)
