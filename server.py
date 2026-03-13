@@ -367,7 +367,7 @@ async def run_download(task: DLTask):
 
             # 先にメタ情報を取得してチャンネル名を確定させる
             def _fetch_info():
-                with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
+                with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "js_runtimes": {"bun": {}, "node": {}, "deno": {}}}) as ydl:
                     return ydl.extract_info(task.url, download=False)
 
             pre_info = await loop.run_in_executor(None, _fetch_info)
@@ -399,6 +399,7 @@ async def run_download(task: DLTask):
                 "writethumbnail":      task.embed_thumb,
                 "quiet":               True,
                 "no_warnings":         True,
+                "js_runtimes":         {"bun": {}, "node": {}, "deno": {}},
             }
 
             def _run():
@@ -612,7 +613,7 @@ async def stream(file_path: str):
 @app.get("/api/info")
 async def get_info(url: str):
     def _fetch():
-        with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
+        with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "js_runtimes": {"bun": {}, "node": {}, "deno": {}}}) as ydl:
             return ydl.extract_info(url, download=False)
     loop = asyncio.get_event_loop()
     try:
