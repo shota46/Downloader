@@ -7,7 +7,7 @@ const SWITCHER_STYLE = `
   display: flex; height: 32px; background: #08080f;
   border-bottom: 1px solid rgba(255,255,255,.08);
   align-items: stretch; flex-shrink: 0; z-index: 10000;
-  font-family: 'JetBrains Mono', monospace; user-select: none;
+  font-family: 'DM Mono', monospace; user-select: none;
 }
 .module-tab {
   display: flex; align-items: center; gap: 6px;
@@ -23,19 +23,19 @@ const SWITCHER_STYLE = `
   background: rgba(255,0,51,.04);
 }
 .module-tab.active-av {
-  color: #00ffd5; border-bottom-color: #00ffd5;
-  background: rgba(0,255,213,.04);
+  color: #00bcd4; border-bottom-color: #00bcd4;
+  background: rgba(0,188,212,.04);
 }
 .module-tab .tab-dot {
   width: 6px; height: 6px; border-radius: 50%;
 }
 .module-tab .tab-dot.yt { background: #ff0033; }
-.module-tab .tab-dot.av { background: #00ffd5; }
+.module-tab .tab-dot.av { background: #00bcd4; }
 @media(max-width:768px){.module-tab{padding:0 12px;font-size:9px;min-height:44px}.module-switcher{height:auto;padding-top:env(safe-area-inset-top, 0)}}
 `;
 
 export default function App() {
-  const [module, setModule] = useState("animevault");
+  const [module, setModule] = useState("youtube");
 
   return (
     <>
