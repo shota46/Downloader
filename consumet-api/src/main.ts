@@ -32,7 +32,7 @@ const fastify = Fastify({
 });
 export const tmdbApi = process.env.TMDB_KEY && process.env.TMDB_KEY;
 (async () => {
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = Number(process.env.CONSUMET_PORT) || 3000;
 
   await fastify.register(FastifyCors, {
     origin: '*',

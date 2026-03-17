@@ -2,7 +2,7 @@
 
 # Start consumet-api (background)
 cd /app/consumet-api
-npm run start &
+CONSUMET_PORT=3000 npm run start &
 echo "consumet-api started on :3000"
 
 # Start anime-vault (background)
