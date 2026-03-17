@@ -7,7 +7,7 @@ echo "consumet-api started on :3000"
 
 # Start anime-vault (background)
 cd /app/anime-vault/server
-ANIME_DIR=/app/downloads/anime node index.js &
+ANIME_DIR=/app/downloads/anime ANIMEVAULT_PORT=4040 node index.js &
 echo "anime-vault started on :4040"
 
 # Start FastAPI server.py (background)

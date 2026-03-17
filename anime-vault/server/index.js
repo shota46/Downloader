@@ -31,7 +31,7 @@ const { exec } = require("child_process");
 const SftpClient = require("ssh2-sftp-client");
 
 const app = express();
-const PORT      = process.env.PORT || 4040;
+const PORT      = process.env.ANIMEVAULT_PORT || 4040;
 const ANIME_DIR = process.env.ANIME_DIR || path.join(__dirname, "../data/anime");
 
 // ─ Ensure ANIME_DIR exists ─
