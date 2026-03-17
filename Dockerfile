@@ -23,7 +23,7 @@ COPY . .
 
 # Install consumet-api dependencies
 WORKDIR /app/consumet-api
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Install anime-vault dependencies
 WORKDIR /app/anime-vault/server
