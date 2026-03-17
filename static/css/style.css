@@ -777,3 +777,133 @@ main {
     .vault-header { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
     .vault-file-item { flex-wrap: wrap; }
 }
+
+/* Cookie Section */
+.cookie-section {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.cookie-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cookie-panel {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.cookie-help {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.cookie-upload-area {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.cookie-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cookie-instructions {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.cookie-instructions summary {
+    cursor: pointer;
+    color: var(--accent);
+}
+
+.cookie-instructions ol {
+    margin: 0.5rem 0 0 1.5rem;
+    line-height: 1.6;
+}
+
+#yt-cookie-status {
+    font-size: 0.9rem;
+}
+
+#yt-cookie-status.active {
+    color: var(--success);
+}
+
+#yt-cookie-status.inactive {
+    color: var(--error);
+}
+
+/* Cookie Panel */
+.cookie-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.cookie-help {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.cookie-upload-area {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.cookie-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.cookie-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
+}
+
+.cookie-status.active {
+    background: rgba(78, 204, 163, 0.1);
+    color: var(--success);
+}
+
+.cookie-status.inactive {
+    background: rgba(255, 71, 87, 0.1);
+    color: var(--error);
+}
+
+.cookie-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    padding: 0.5rem 0;
+}
+
+.cookie-toggle:hover {
+    color: var(--accent);
+}

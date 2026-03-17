@@ -21,6 +21,35 @@
     <main>
         <!-- Download Tab (Simple - app.py direct) -->
         <section id="youtube" class="tab-content active">
+            <!-- Cookie Auth Section -->
+            <div class="cookie-section">
+                <div class="cookie-header">
+                    <span id="yt-cookie-status">Cookie: 確認中...</span>
+                    <button id="yt-cookie-toggle" class="btn-small">設定</button>
+                </div>
+                <div id="yt-cookie-panel" class="cookie-panel hidden">
+                    <p class="cookie-help">YouTube認証エラーが出る場合、ブラウザからCookieをエクスポートしてアップロードしてください。</p>
+                    <div class="cookie-upload-area">
+                        <input type="file" id="yt-cookie-file" accept=".txt" class="hidden">
+                        <button id="yt-cookie-upload-btn" class="btn-secondary">Cookieファイル選択</button>
+                        <span id="yt-cookie-filename"></span>
+                    </div>
+                    <div class="cookie-actions">
+                        <button id="yt-cookie-save" class="btn-primary" disabled>保存</button>
+                        <button id="yt-cookie-delete" class="btn-small btn-danger">削除</button>
+                    </div>
+                    <details class="cookie-instructions">
+                        <summary>Cookie取得方法</summary>
+                        <ol>
+                            <li>ChromeでYouTubeにログイン</li>
+                            <li>拡張機能「Get cookies.txt LOCALLY」をインストール</li>
+                            <li>YouTubeページで拡張機能をクリック → 「Export」</li>
+                            <li>ダウンロードしたファイルをここにアップロード</li>
+                        </ol>
+                    </details>
+                </div>
+            </div>
+
             <div class="input-group">
                 <input type="text" id="yt-url" placeholder="URLを貼り付け (YouTube, Twitter, TikTok, ニコ動等)">
                 <button id="yt-fetch" class="btn-primary">取得</button>

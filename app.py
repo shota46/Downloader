@@ -16,12 +16,16 @@ app = Flask(__name__)
 DOWNLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'downloads')
 YOUTUBE_DIR = os.path.join(DOWNLOAD_DIR, 'youtube')
 ANIME_DIR = os.path.join(DOWNLOAD_DIR, 'anime')
+COOKIES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies')
 
 CONSUMET_API = os.environ.get('CONSUMET_API', 'http://localhost:3000')
 ANIME_PROVIDER = os.environ.get('ANIME_PROVIDER', 'animepahe')
 YTDL_API = os.environ.get('YTDL_API', 'http://localhost:8765')
 ANIMEVAULT_API = os.environ.get('ANIMEVAULT_API', 'http://localhost:4040')
 PORT = int(os.environ.get('PORT', os.environ.get('APP_PORT', 8080)))
+
+COOKIES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies')
+COOKIES_FILE = os.path.join(COOKIES_DIR, 'youtube_cookies.txt')
 
 TIMEOUTS = {
     'default': 10,
@@ -38,6 +42,9 @@ ALLOWED_STREAM_HEADERS = {
 
 os.makedirs(YOUTUBE_DIR, exist_ok=True)
 os.makedirs(ANIME_DIR, exist_ok=True)
+os.makedirs(COOKIES_DIR, exist_ok=True)
+
+download_tasks = {}
 
 download_tasks = {}
 
@@ -203,6 +210,10 @@ def _do_youtube_download(task_id, url, quality, custom_filename, trim, start_tim
         'quiet': True,
     }
 
+    # Add cookies if available
+    if os.path.exists(COOKIES_FILE):
+        ydl_opts['cookiefile'] = COOKIES_FILE
+
     # Add download sections for trimming (yt-dlp native)
     if trim and (start_time or end_time):
         start_sec = parse_timestamp(start_time)
@@ -279,6 +290,67 @@ def youtube_progress(task_id):
 @app.route('/api/downloads/youtube/<filename>')
 def serve_youtube_download(filename):
     return send_from_directory(YOUTUBE_DIR, filename, as_attachment=True)
+
+
+# ─── Cookie Management ────────────────────────────────────────────────────────
+
+COOKIES_FILE = os.path.join(COOKIES_DIR, 'youtube_cookies.txt')
+
+
+@app.route('/api/youtube/cookies', methods=['GET', 'POST', 'DELETE'])
+def youtube_cookies():
+    """Manage YouTube cookies for authentication."""
+    if request.method == 'GET':
+        # Check cookie status
+        if os.path.exists(COOKIES_FILE):
+            try:
+                stat = os.stat(COOKIES_FILE)
+                # Read first few lines to verify format
+                with open(COOKIES_FILE, 'r') as f:
+                    lines = f.readlines()
+                valid_lines = [l for l in lines if l.strip() and not l.startswith('#')]
+                return jsonify({
+                    'exists': True,
+                    'size': stat.st_size,
+                    'modified': stat.st_mtime,
+                    'entries': len(valid_lines)
+                })
+            except Exception as e:
+                return jsonify({'exists': False, 'error': str(e)})
+        return jsonify({'exists': False})
+
+    elif request.method == 'POST':
+        # Upload cookies
+        if 'file' in request.files:
+            file = request.files['file']
+            content = file.read().decode('utf-8', errors='ignore')
+        elif request.is_json:
+            content = request.json.get('cookies', '')
+        else:
+            content = request.data.decode('utf-8', errors='ignore')
+
+        if not content.strip():
+            return api_error('No cookie content provided', 400)
+
+        # Validate cookie format (basic check)
+        lines = content.strip().split('\n')
+        valid_lines = [l for l in lines if l.strip() and not l.startswith('#')]
+
+        if len(valid_lines) == 0:
+            return api_error('Invalid cookie format. Please provide Netscape format cookies.', 400)
+
+        try:
+            with open(COOKIES_FILE, 'w') as f:
+                f.write(content)
+            return jsonify({'success': True, 'entries': len(valid_lines)})
+        except Exception as e:
+            return api_error(f'Failed to save cookies: {e}', 500)
+
+    elif request.method == 'DELETE':
+        # Delete cookies
+        if os.path.exists(COOKIES_FILE):
+            os.remove(COOKIES_FILE)
+        return jsonify({'success': True})
 
 
 # ─── Anime API ────────────────────────────────────────────────────────────────

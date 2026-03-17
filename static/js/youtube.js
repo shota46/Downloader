@@ -28,6 +28,15 @@
         queueSection: document.getElementById('yt-queue-section'),
         queueList: document.getElementById('yt-queue-list'),
         clearQueueBtn: document.getElementById('yt-clear-queue'),
+        // Cookie elements
+        cookieStatus: document.getElementById('yt-cookie-status'),
+        cookieToggle: document.getElementById('yt-cookie-toggle'),
+        cookiePanel: document.getElementById('yt-cookie-panel'),
+        cookieFile: document.getElementById('yt-cookie-file'),
+        cookieUploadBtn: document.getElementById('yt-cookie-upload-btn'),
+        cookieFilename: document.getElementById('yt-cookie-filename'),
+        cookieSave: document.getElementById('yt-cookie-save'),
+        cookieDelete: document.getElementById('yt-cookie-delete'),
     };
 
     // State
@@ -35,6 +44,7 @@
     let downloadQueue = [];
     let activeDownloads = 0;
     let directoryHandle = null; // File System Access API
+    let selectedCookieFile = null;
     const MAX_CONCURRENT = 3;
 
     // Utilities
@@ -64,6 +74,90 @@
             hideEl(els.trimInputs);
         }
     });
+
+    // Cookie event listeners
+    els.cookieToggle?.addEventListener('click', () => {
+        els.cookiePanel?.classList.toggle('hidden');
+    });
+    els.cookieUploadBtn?.addEventListener('click', () => els.cookieFile?.click());
+    els.cookieFile?.addEventListener('change', handleCookieFileSelect);
+    els.cookieSave?.addEventListener('click', uploadCookie);
+    els.cookieDelete?.addEventListener('click', deleteCookie);
+
+    // Check cookie status on load
+    checkCookieStatus();
+
+    // Cookie functions
+    async function checkCookieStatus() {
+        try {
+            const resp = await fetch('/api/youtube/cookies');
+            const data = await resp.json();
+            if (data.exists) {
+                els.cookieStatus.textContent = `✅ Cookie有効 (${data.entries}件)`;
+                els.cookieStatus.classList.add('active');
+                els.cookieStatus.classList.remove('inactive');
+            } else {
+                els.cookieStatus.textContent = '❌ Cookie未設定';
+                els.cookieStatus.classList.add('inactive');
+                els.cookieStatus.classList.remove('active');
+            }
+        } catch (e) {
+            els.cookieStatus.textContent = '⚠️ Cookie確認エラー';
+            els.cookieStatus.classList.add('inactive');
+        }
+    }
+
+    function handleCookieFileSelect(e) {
+        const file = e.target.files[0];
+        if (file) {
+            selectedCookieFile = file;
+            els.cookieFilename.textContent = file.name;
+            els.cookieSave.disabled = false;
+        }
+    }
+
+    async function uploadCookie() {
+        if (!selectedCookieFile) return;
+
+        const formData = new FormData();
+        formData.append('file', selectedCookieFile);
+
+        try {
+            const resp = await fetch('/api/youtube/cookies', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                els.cookieStatus.textContent = `✅ Cookie保存完了 (${data.entries}件)`;
+                els.cookieStatus.classList.add('active');
+                els.cookieStatus.classList.remove('inactive');
+                els.cookiePanel?.classList.add('hidden');
+                els.cookieSave.disabled = true;
+                els.cookieFilename.textContent = '';
+                selectedCookieFile = null;
+            } else {
+                showError(data.error || 'Cookie保存エラー');
+            }
+        } catch (e) {
+            showError('Cookieアップロードエラー');
+        }
+    }
+
+    async function deleteCookie() {
+        try {
+            await fetch('/api/youtube/cookies', { method: 'DELETE' });
+            els.cookieStatus.textContent = '❌ Cookie未設定';
+            els.cookieStatus.classList.add('inactive');
+            els.cookieStatus.classList.remove('active');
+            els.cookieFilename.textContent = '';
+            selectedCookieFile = null;
+            els.cookieSave.disabled = true;
+        } catch (e) {
+            showError('Cookie削除エラー');
+        }
+    }
 
     // Check File System Access API support
     const hasFileSystemAccess = 'showDirectoryPicker' in window;
