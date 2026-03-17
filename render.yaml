@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: downloader
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    numInstances: 1
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: ANIME_PROVIDER
+        value: "animepahe"

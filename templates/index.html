@@ -10,19 +10,19 @@
     <header>
         <h1>Downloader</h1>
         <nav class="tabs">
-            <button class="tab active" data-tab="youtube">YouTube</button>
-            <button class="tab" data-tab="ytdl">YT Advanced</button>
+            <button class="tab active" data-tab="youtube">Download</button>
+            <button class="tab" data-tab="ytdl">Advanced</button>
             <button class="tab" data-tab="anime">Anime</button>
             <button class="tab" data-tab="vault">Vault</button>
-            <button class="tab" data-tab="downloads">Downloads</button>
+            <button class="tab" data-tab="downloads">Files</button>
         </nav>
     </header>
 
     <main>
-        <!-- YouTube Tab (Simple - app.py direct) -->
+        <!-- Download Tab (Simple - app.py direct) -->
         <section id="youtube" class="tab-content active">
             <div class="input-group">
-                <input type="text" id="yt-url" placeholder="YouTube URLを貼り付け...">
+                <input type="text" id="yt-url" placeholder="URLを貼り付け (YouTube, Twitter, TikTok, ニコ動等)">
                 <button id="yt-fetch" class="btn-primary">取得</button>
             </div>
 
@@ -39,16 +39,51 @@
                     </div>
                 </div>
 
-                <div class="quality-selector">
-                    <label><input type="radio" name="quality" value="best" checked> Best</label>
-                    <label><input type="radio" name="quality" value="1080"> 1080p</label>
-                    <label><input type="radio" name="quality" value="720"> 720p</label>
-                    <label><input type="radio" name="quality" value="480"> 480p</label>
-                    <label><input type="radio" name="quality" value="360"> 360p</label>
-                    <label><input type="radio" name="quality" value="audio"> Audio Only</label>
+                <!-- Download Options -->
+                <div class="download-options">
+                    <div class="option-row">
+                        <label>画質:</label>
+                        <div class="quality-selector">
+                            <label><input type="radio" name="quality" value="best" checked> Best</label>
+                            <label><input type="radio" name="quality" value="1080"> 1080p</label>
+                            <label><input type="radio" name="quality" value="720"> 720p</label>
+                            <label><input type="radio" name="quality" value="480"> 480p</label>
+                            <label><input type="radio" name="quality" value="360"> 360p</label>
+                            <label><input type="radio" name="quality" value="audio"> Audio</label>
+                        </div>
+                    </div>
+
+                    <div class="option-row">
+                        <label>ファイル名:</label>
+                        <input type="text" id="yt-filename" placeholder="空白で自動">
+                        <button id="yt-select-folder" class="btn-small">保存先を選択</button>
+                        <span id="yt-folder-path" class="folder-path"></span>
+                    </div>
+
+                    <div class="option-row trim-options">
+                        <label>
+                            <input type="checkbox" id="yt-trim-enable">
+                            部分切り抜き
+                        </label>
+                        <div class="trim-inputs hidden" id="yt-trim-inputs">
+                            <input type="text" id="yt-start" placeholder="開始 (例: 1:30)" pattern="[0-9:]+">
+                            <span>〜</span>
+                            <input type="text" id="yt-end" placeholder="終了 (例: 3:45)" pattern="[0-9:]+">
+                        </div>
+                    </div>
                 </div>
 
                 <button id="yt-download" class="btn-primary btn-download">ダウンロード</button>
+                <button id="yt-add-queue" class="btn-secondary">キューに追加</button>
+            </div>
+
+            <!-- Queue for multiple downloads -->
+            <div id="yt-queue-section" class="queue-section hidden">
+                <div class="queue-header">
+                    <h3>ダウンロードキュー</h3>
+                    <button id="yt-clear-queue" class="btn-small">全クリア</button>
+                </div>
+                <div id="yt-queue-list"></div>
             </div>
 
             <div id="yt-progress" class="progress-container hidden">
@@ -59,12 +94,79 @@
             <div id="yt-complete" class="hidden">
                 <a id="yt-download-link" class="btn-success" href="#" download>ファイルをダウンロード</a>
             </div>
+
+            <!-- Supported Sites -->
+            <details class="supported-sites">
+                <summary>対応サイト一覧</summary>
+                <div class="sites-grid">
+                    <div class="site-category">
+                        <h4>動画共有</h4>
+                        <ul>
+                            <li>YouTube</li>
+                            <li>Vimeo</li>
+                            <li>Dailymotion</li>
+                            <li>Niconico (ニコニコ)</li>
+                            <li>Bilibili (ビリビリ)</li>
+                        </ul>
+                    </div>
+                    <div class="site-category">
+                        <h4>SNS</h4>
+                        <ul>
+                            <li>Twitter / X</li>
+                            <li>TikTok</li>
+                            <li>Instagram</li>
+                            <li>Facebook</li>
+                            <li>Reddit</li>
+                        </ul>
+                    </div>
+                    <div class="site-category">
+                        <h4>配信</h4>
+                        <ul>
+                            <li>Twitch</li>
+                            <li>TwitCasting</li>
+                            <li>OPENREC</li>
+                            <li>mixch</li>
+                            <li>FC2</li>
+                        </ul>
+                    </div>
+                    <div class="site-category">
+                        <h4>音楽</h4>
+                        <ul>
+                            <li>SoundCloud</li>
+                            <li>Mixcloud</li>
+                            <li>Spotify (メタデータ)</li>
+                        </ul>
+                    </div>
+                    <div class="site-category">
+                        <h4>その他</h4>
+                        <ul>
+                            <li>Pinterest</li>
+                            <li>Imgur</li>
+                            <li>archive.org</li>
+                            <li>Google Drive</li>
+                            <li>+ 1000以上</li>
+                        </ul>
+                    </div>
+                </div>
+            </details>
         </section>
 
-        <!-- YT Advanced Tab (server.py via WebSocket) -->
+        <!-- Advanced Tab (server.py via WebSocket) -->
         <section id="ytdl" class="tab-content hidden">
+            <div class="info-box">
+                <h4>Advanced とは？</h4>
+                <p>Download (Simple) よりも高機能なダウンロードツールです。</p>
+                <ul>
+                    <li><strong>並列処理</strong>: 複数動画をキューで管理・順次処理</li>
+                    <li><strong>リアルタイム進捗</strong>: 速度・ステータスを詳細表示</li>
+                    <li><strong>メタデータ制御</strong>: 埋め込みON/OFF選択可</li>
+                    <li><strong>音声抽出</strong>: MP3/M4Aで音声のみ保存</li>
+                </ul>
+                <p class="text-muted">おすすめ: プレイリスト、複数動画、詳細制御したい時</p>
+            </div>
+
             <div class="input-group">
-                <input type="text" id="ytdl-url" placeholder="YouTube URLを貼り付け...">
+                <input type="text" id="ytdl-url" placeholder="URLを貼り付け (YouTube, Twitter, TikTok等)">
                 <button id="ytdl-fetch" class="btn-primary">情報取得</button>
             </div>
 

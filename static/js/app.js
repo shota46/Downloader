@@ -78,7 +78,7 @@ async function loadDownloadsList() {
         let html = '';
 
         if (data.youtube && data.youtube.length > 0) {
-            html += '<div class="download-section"><h3>YouTube (Local)</h3>';
+            html += '<div class="download-section"><h3>動画 (Local)</h3>';
             data.youtube.forEach(f => {
                 html += `<div class="download-item"><span>${f}</span><a href="/api/downloads/youtube/${encodeURIComponent(f)}">DL</a></div>`;
             });

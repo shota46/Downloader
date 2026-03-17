@@ -1,268 +1,315 @@
 (function () {
-    const searchInput = document.getElementById('anime-search-input');
-    const searchBtn = document.getElementById('anime-search-btn');
-    const loadingEl = document.getElementById('anime-loading');
-    const errorEl = document.getElementById('anime-error');
-    const resultsEl = document.getElementById('anime-results');
-    const detailEl = document.getElementById('anime-detail');
-    const detailContent = document.getElementById('anime-detail-content');
-    const episodesEl = document.getElementById('anime-episodes');
-    const backBtn = document.getElementById('anime-back');
-    const streamEl = document.getElementById('anime-stream');
-    const streamContent = document.getElementById('anime-stream-content');
-    const streamBackBtn = document.getElementById('anime-stream-back');
-    const streamProgress = document.getElementById('anime-stream-progress');
-    const progressFill = document.getElementById('anime-progress-fill');
-    const progressText = document.getElementById('anime-progress-text');
-    const streamComplete = document.getElementById('anime-stream-complete');
-    const animeDownloadLink = document.getElementById('anime-download-link');
+    // ─── DOM Elements ───────────────────────────────────────────────────────
+    const els = {
+        searchInput: document.getElementById('anime-search-input'),
+        searchBtn: document.getElementById('anime-search-btn'),
+        loading: document.getElementById('anime-loading'),
+        error: document.getElementById('anime-error'),
+        results: document.getElementById('anime-results'),
+        detail: document.getElementById('anime-detail'),
+        detailContent: document.getElementById('anime-detail-content'),
+        episodes: document.getElementById('anime-episodes'),
+        backBtn: document.getElementById('anime-back'),
+        stream: document.getElementById('anime-stream'),
+        streamContent: document.getElementById('anime-stream-content'),
+        streamBackBtn: document.getElementById('anime-stream-back'),
+        streamProgress: document.getElementById('anime-stream-progress'),
+        progressFill: document.getElementById('anime-progress-fill'),
+        progressText: document.getElementById('anime-progress-text'),
+        streamComplete: document.getElementById('anime-stream-complete'),
+        downloadLink: document.getElementById('anime-download-link'),
+    };
 
-    let currentAnimeId = null;
+    // ─── Utilities ───────────────────────────────────────────────────────────
+    const escapeHtml = (str) => {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    };
 
-    searchBtn.addEventListener('click', () => searchAnime());
-    searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchAnime(); });
-    backBtn.addEventListener('click', showSearchResults);
-    streamBackBtn.addEventListener('click', () => {
-        streamEl.classList.add('hidden');
-        detailEl.classList.remove('hidden');
+    const showEl = (el) => el?.classList.remove('hidden');
+    const hideEl = (el) => el?.classList.add('hidden');
+    const showError = (msg) => { els.error.textContent = msg; showEl(els.error); };
+    const hideError = () => hideEl(els.error);
+
+    // ─── Event Listeners ─────────────────────────────────────────────────────
+    els.searchBtn?.addEventListener('click', () => searchAnime());
+    els.searchInput?.addEventListener('keydown', e => { if (e.key === 'Enter') searchAnime(); });
+    els.backBtn?.addEventListener('click', showSearchResults);
+    els.streamBackBtn?.addEventListener('click', () => {
+        hideEl(els.stream);
+        showEl(els.detail);
     });
 
+    // ─── Search ──────────────────────────────────────────────────────────────
     async function searchAnime(page = 1) {
-        const keyword = searchInput.value.trim();
+        const keyword = els.searchInput?.value.trim();
         if (!keyword) return;
 
-        hideError(errorEl);
-        loadingEl.classList.remove('hidden');
-        resultsEl.innerHTML = '';
-        detailEl.classList.add('hidden');
-        streamEl.classList.add('hidden');
-        resultsEl.classList.remove('hidden');
-        searchBtn.disabled = true;
+        hideError();
+        showEl(els.loading);
+        els.results.innerHTML = '';
+        hideEl(els.detail);
+        hideEl(els.stream);
+        showEl(els.results);
+        els.searchBtn.disabled = true;
 
         try {
             const resp = await fetch(`/api/anime/search?keyword=${encodeURIComponent(keyword)}&page=${page}`);
             const data = await resp.json();
 
             if (data.error) {
-                showError(errorEl, data.error);
+                showError(data.error);
                 return;
             }
 
-            const results = data.data?.response || data.data?.animes || [];
-            if (results.length === 0) {
-                resultsEl.innerHTML = '<div class="empty-state">結果が見つかりませんでした</div>';
+            const results = data.results || data.data?.response || data.data?.animes || [];
+            if (!results.length) {
+                els.results.innerHTML = '<div class="empty-state">結果が見つかりませんでした</div>';
                 return;
             }
 
-            resultsEl.innerHTML = results.map(anime => `
-                <div class="anime-card" data-id="${anime.id}">
-                    <img src="${anime.poster || ''}" alt="${anime.name || ''}" loading="lazy">
+            els.results.innerHTML = results.map(anime => `
+                <div class="anime-card" data-id="${escapeHtml(anime.id)}">
+                    <img src="${escapeHtml(anime.image || anime.poster || '')}" alt="${escapeHtml(anime.title || anime.name || '')}" loading="lazy">
                     <div class="card-info">
-                        <div class="card-title">${anime.name || anime.jname || ''}</div>
-                        <div class="card-meta">${anime.type || ''} ${anime.duration || ''}</div>
+                        <div class="card-title">${escapeHtml(anime.title || anime.name || anime.japaneseTitle || '')}</div>
+                        <div class="card-meta">${escapeHtml(anime.type || '')} ${anime.episodes ? `EP ${anime.episodes}` : ''}</div>
                     </div>
                 </div>
             `).join('');
 
-            resultsEl.querySelectorAll('.anime-card').forEach(card => {
+            els.results.querySelectorAll('.anime-card').forEach(card => {
                 card.addEventListener('click', () => showAnimeDetail(card.dataset.id));
             });
         } catch {
-            showError(errorEl, 'Anime APIに接続できません');
+            showError('Anime APIに接続できません');
         } finally {
-            loadingEl.classList.add('hidden');
-            searchBtn.disabled = false;
+            hideEl(els.loading);
+            els.searchBtn.disabled = false;
         }
     }
 
+    // ─── Anime Detail ────────────────────────────────────────────────────────
     async function showAnimeDetail(animeId) {
-        currentAnimeId = animeId;
-        hideError(errorEl);
-        resultsEl.classList.add('hidden');
-        streamEl.classList.add('hidden');
-        loadingEl.classList.remove('hidden');
+        hideError();
+        hideEl(els.results);
+        hideEl(els.stream);
+        showEl(els.loading);
 
         try {
-            const [infoResp, epsResp] = await Promise.all([
-                fetch(`/api/anime/info/${animeId}`),
-                fetch(`/api/anime/episodes/${animeId}`),
-            ]);
-            const info = await infoResp.json();
-            const eps = await epsResp.json();
+            const resp = await fetch(`/api/anime/info/${encodeURIComponent(animeId)}`);
+            const anime = await resp.json();
 
-            if (info.error) { showError(errorEl, info.error); return; }
+            if (anime.error) {
+                showError(anime.error);
+                return;
+            }
 
-            const anime = info.data?.anime || info.data || {};
-            const moreInfo = anime.moreInfo || {};
+            const title = anime.title || anime.name || '';
+            const image = anime.image || anime.poster || '';
+            const description = anime.description || '';
+            const episodes = anime.episodes || [];
 
-            detailContent.innerHTML = `
-                <img src="${anime.poster || ''}" alt="${anime.name || ''}">
+            els.detailContent.innerHTML = `
+                <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}">
                 <div class="detail-info">
-                    <h2>${anime.name || ''}</h2>
-                    <div class="detail-meta">${anime.jname || ''}</div>
-                    <div class="detail-meta">${moreInfo.status || ''} | ${moreInfo.aired || ''} | ${moreInfo.genres?.join(', ') || ''}</div>
-                    <div class="detail-desc">${anime.description || ''}</div>
+                    <h2>${escapeHtml(title)}</h2>
+                    <div class="detail-meta">${escapeHtml(anime.japaneseTitle || anime.jname || '')}</div>
+                    <div class="detail-meta">${escapeHtml(anime.type || '')} | ${escapeHtml(anime.duration || '')} | ${escapeHtml(anime.status || '')}</div>
+                    <div class="detail-desc">${escapeHtml(description)}</div>
                 </div>
             `;
 
-            const episodes = eps.data?.episodes || eps.data || [];
-            episodesEl.innerHTML = episodes.map(ep => `
-                <button class="episode-btn" data-id="${ep.id}" data-title="${(anime.name || '') + ' EP' + (ep.number || ep.episode_no || '')}">${ep.number || ep.episode_no || ep.title || ''}</button>
-            `).join('');
+            if (!episodes.length) {
+                els.episodes.innerHTML = '<div class="empty-state">エピソードが見つかりません</div>';
+            } else {
+                els.episodes.innerHTML = episodes.map(ep => `
+                    <button class="episode-btn" data-id="${escapeHtml(ep.id)}" data-title="${escapeHtml(title)} EP${ep.number || ''}">${ep.number || ep.title || ''}</button>
+                `).join('');
 
-            episodesEl.querySelectorAll('.episode-btn').forEach(btn => {
-                btn.addEventListener('click', () => showEpisodeStream(btn.dataset.id, btn.dataset.title));
-            });
+                els.episodes.querySelectorAll('.episode-btn').forEach(btn => {
+                    btn.addEventListener('click', () => showEpisodeStream(btn.dataset.id, btn.dataset.title));
+                });
+            }
 
-            detailEl.classList.remove('hidden');
+            showEl(els.detail);
         } catch {
-            showError(errorEl, 'アニメ情報の取得に失敗しました');
+            showError('アニメ情報の取得に失敗しました');
         } finally {
-            loadingEl.classList.add('hidden');
+            hideEl(els.loading);
         }
     }
 
+    // ─── Episode Stream ──────────────────────────────────────────────────────
     async function showEpisodeStream(episodeId, title) {
-        detailEl.classList.add('hidden');
-        hideError(errorEl);
-        loadingEl.classList.remove('hidden');
-        streamComplete.classList.add('hidden');
-        streamProgress.classList.add('hidden');
+        hideEl(els.detail);
+        hideError();
+        showEl(els.loading);
+        hideEl(els.streamComplete);
+        hideEl(els.streamProgress);
 
         try {
-            const serversResp = await fetch(`/api/anime/servers/${episodeId}`);
-            const serversData = await serversResp.json();
-
-            const sub = serversData.data?.sub || [];
-            const dub = serversData.data?.dub || [];
-
-            let html = `<h3>${title}</h3>`;
-
-            if (sub.length > 0) {
-                html += '<p style="margin-top:1rem;color:var(--text-secondary)">Sub</p><div class="server-buttons">';
-                sub.forEach(s => {
-                    html += `<button class="server-btn" data-ep="${episodeId}" data-server="${s.name}" data-type="sub" data-title="${title}">${s.name}</button>`;
-                });
-                html += '</div>';
-            }
-
-            if (dub.length > 0) {
-                html += '<p style="margin-top:0.5rem;color:var(--text-secondary)">Dub</p><div class="server-buttons">';
-                dub.forEach(s => {
-                    html += `<button class="server-btn" data-ep="${episodeId}" data-server="${s.name}" data-type="dub" data-title="${title}">${s.name}</button>`;
-                });
-                html += '</div>';
-            }
-
-            html += '<div id="stream-result"></div>';
-            streamContent.innerHTML = html;
-
-            streamContent.querySelectorAll('.server-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    streamContent.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    getStream(btn.dataset.ep, btn.dataset.server, btn.dataset.type, btn.dataset.title);
-                });
-            });
-
-            streamEl.classList.remove('hidden');
-        } catch {
-            showError(errorEl, 'サーバー情報の取得に失敗しました');
-            detailEl.classList.remove('hidden');
-        } finally {
-            loadingEl.classList.add('hidden');
-        }
-    }
-
-    async function getStream(episodeId, server, type, title) {
-        const resultEl = document.getElementById('stream-result');
-        resultEl.innerHTML = '<div class="loading">ストリーム取得中...</div>';
-        streamComplete.classList.add('hidden');
-        streamProgress.classList.add('hidden');
-
-        try {
-            const resp = await fetch(`/api/anime/stream?id=${encodeURIComponent(episodeId)}&server=${server}&type=${type}`);
+            const resp = await fetch(`/api/anime/stream?id=${encodeURIComponent(episodeId)}`);
             const data = await resp.json();
 
             if (data.error) {
-                resultEl.innerHTML = `<div class="error">${data.error}</div>`;
+                showError(data.error);
+                showEl(els.detail);
                 return;
             }
 
-            const streamData = data.data || {};
-            const sources = streamData.sources || [];
-            const tracks = streamData.tracks || [];
+            const sources = data.data?.sources || [];
+            const downloads = data.data?.download || [];
+            const headers = data.data?.headers || {};
 
-            if (sources.length === 0) {
-                resultEl.innerHTML = '<div class="error">ストリームが見つかりませんでした</div>';
+            if (!sources.length && !downloads.length) {
+                showError('ストリームが見つかりませんでした');
+                showEl(els.detail);
                 return;
             }
 
-            const hlsUrl = sources[0].url || sources[0].file || '';
+            // Prefer direct download URLs if available
+            const downloadUrl = downloads.length > 0 ? downloads[0].url : null;
+            const hlsUrl = sources.length > 0 ? sources[0].url : null;
+            const referer = headers.Referer || 'https://kwik.cx/';
 
-            let html = '<div class="stream-actions">';
-            html += `<a class="stream-link" href="${hlsUrl}" target="_blank" rel="noopener">M3U8リンクをコピー</a>`;
+            let html = `<h3>${escapeHtml(title)}</h3>`;
+
+            // Quality selector if multiple options
+            if (downloads.length > 1) {
+                html += '<div class="quality-selector" style="margin:1rem 0">';
+                downloads.forEach((d, i) => {
+                    const checked = i === 0 ? 'checked' : '';
+                    html += `<label><input type="radio" name="anime-quality" value="${i}" ${checked}> ${escapeHtml(d.quality)}</label>`;
+                });
+                html += '</div>';
+            } else if (sources.length > 1) {
+                html += '<div class="quality-selector" style="margin:1rem 0">';
+                sources.forEach((s, i) => {
+                    const checked = i === 0 ? 'checked' : '';
+                    html += `<label><input type="radio" name="anime-quality" value="${i}" ${checked}> ${escapeHtml(s.quality)}</label>`;
+                });
+                html += '</div>';
+            }
+
+            html += '<div class="stream-actions" style="margin-top:1rem">';
             html += `<button class="btn-primary" id="anime-dl-btn">ダウンロード (MP4)</button>`;
             html += '</div>';
+            html += '<div id="stream-result"></div>';
 
-            if (tracks.length > 0) {
-                html += '<p style="margin-top:0.5rem;color:var(--text-secondary);font-size:0.8rem">字幕: ';
-                html += tracks.filter(t => t.kind === 'captions').map(t => t.label || t.language || '').join(', ');
-                html += '</p>';
-            }
+            els.streamContent.innerHTML = html;
 
-            resultEl.innerHTML = html;
+            // Store data for download
+            els.streamContent.dataset.downloads = JSON.stringify(downloads);
+            els.streamContent.dataset.sources = JSON.stringify(sources);
+            els.streamContent.dataset.referer = referer;
 
-            document.getElementById('anime-dl-btn').addEventListener('click', () => {
-                startAnimeDownload(hlsUrl, title);
+            document.getElementById('anime-dl-btn')?.addEventListener('click', () => {
+                const qualityIndex = document.querySelector('input[name="anime-quality"]:checked')?.value || '0';
+                const idx = parseInt(qualityIndex);
+                const dl = downloads[idx] || downloads[0];
+                const src = sources[idx] || sources[0];
+
+                // Prefer direct download URL
+                if (dl?.url) {
+                    directDownload(dl.url, title, referer);
+                } else if (src?.url) {
+                    startAnimeDownload(src.url, title, referer);
+                }
             });
+
+            showEl(els.stream);
         } catch {
-            resultEl.innerHTML = '<div class="error">ストリームの取得に失敗しました</div>';
+            showError('ストリームの取得に失敗しました');
+            showEl(els.detail);
+        } finally {
+            hideEl(els.loading);
         }
     }
 
-    async function startAnimeDownload(hlsUrl, filename) {
-        streamComplete.classList.add('hidden');
-        progressFill.style.width = '0%';
-        progressText.textContent = '0%';
-        streamProgress.classList.remove('hidden');
+    // Direct download (MP4)
+    async function directDownload(url, filename, referer) {
+        const safeName = (filename || 'anime').replace(/[^\w\s\-.]/g, '').trim() + '.mp4';
+        els.progressFill.style.width = '0%';
+        els.progressText.textContent = '準備中...';
+        showEl(els.streamProgress);
 
         try {
             const resp = await fetch('/api/anime/download', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: hlsUrl, filename }),
+                body: JSON.stringify({ url, filename: safeName, referer }),
             });
             const data = await resp.json();
 
             if (data.error) {
-                showError(errorEl, data.error);
-                streamProgress.classList.add('hidden');
+                showError(data.error);
+                hideEl(els.streamProgress);
                 return;
             }
 
             pollProgress(
                 data.task_id,
-                progressFill,
-                progressText,
+                els.progressFill,
+                els.progressText,
                 fname => {
-                    animeDownloadLink.href = `/api/downloads/anime/${encodeURIComponent(fname)}`;
-                    animeDownloadLink.textContent = fname;
-                    streamComplete.classList.remove('hidden');
+                    els.downloadLink.href = `/api/downloads/anime/${encodeURIComponent(fname)}`;
+                    els.downloadLink.textContent = fname;
+                    showEl(els.streamComplete);
                 },
-                err => {
-                    showError(errorEl, err);
-                }
+                err => showError(err)
             );
         } catch {
-            showError(errorEl, 'ダウンロードの開始に失敗しました');
-            streamProgress.classList.add('hidden');
+            showError('ダウンロードの開始に失敗しました');
+            hideEl(els.streamProgress);
         }
     }
 
+    // ─── Download ────────────────────────────────────────────────────────────
+    async function startAnimeDownload(hlsUrl, filename, referer) {
+        const safeName = (filename || 'anime').replace(/[^\w\s\-.]/g, '').trim() + '.mp4';
+        hideEl(els.streamComplete);
+        els.progressFill.style.width = '0%';
+        els.progressText.textContent = '0%';
+        showEl(els.streamProgress);
+
+        try {
+            const resp = await fetch('/api/anime/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: hlsUrl, filename: safeName, referer }),
+            });
+            const data = await resp.json();
+
+            if (data.error) {
+                showError(data.error);
+                hideEl(els.streamProgress);
+                return;
+            }
+
+            pollProgress(
+                data.task_id,
+                els.progressFill,
+                els.progressText,
+                fname => {
+                    els.downloadLink.href = `/api/downloads/anime/${encodeURIComponent(fname)}`;
+                    els.downloadLink.textContent = fname;
+                    showEl(els.streamComplete);
+                },
+                err => showError(err)
+            );
+        } catch {
+            showError('ダウンロードの開始に失敗しました');
+            hideEl(els.streamProgress);
+        }
+    }
+
+    // ─── Navigation ──────────────────────────────────────────────────────────
     function showSearchResults() {
-        detailEl.classList.add('hidden');
-        streamEl.classList.add('hidden');
-        resultsEl.classList.remove('hidden');
+        hideEl(els.detail);
+        hideEl(els.stream);
+        showEl(els.results);
     }
 })();

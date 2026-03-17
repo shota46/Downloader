@@ -2,12 +2,8 @@
 # Downloader - 全サービス一括起動
 BASE="$(cd "$(dirname "$0")" && pwd)"
 
-echo "Starting hianime-API (:3030)..."
-if command -v bun &>/dev/null; then
-  (cd "$BASE/hianime-API" && RATE_LIMIT_LIMIT=200 bun run dev) &
-else
-  (cd "$BASE/hianime-API" && RATE_LIMIT_LIMIT=200 npm run start:node) &
-fi
+echo "Starting consumet-api (:3000)..."
+(cd "$BASE/consumet-api" && npm run start) &
 
 echo "Starting anime-vault server (:4040)..."
 (cd "$BASE/anime-vault/server" && ANIME_DIR="$BASE/downloads/anime" node index.js) &
@@ -30,7 +26,7 @@ echo "║   All services started                       ║"
 echo "║   Flask Gateway:  http://localhost:8080       ║"
 echo "║   YTDL Server:    http://localhost:8765       ║"
 echo "║   AnimeVault:     http://localhost:4040       ║"
-echo "║   hianime-API:    http://localhost:3030       ║"
+echo "║   Consumet-API:   http://localhost:3030       ║"
 if [ "$1" = "dev" ]; then
 echo "║   Vite Dev:       http://localhost:5173       ║"
 fi

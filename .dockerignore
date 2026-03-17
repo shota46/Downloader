@@ -1,0 +1,17 @@
+.git
+.gitignore
+*.pyc
+__pycache__
+downloads/*
+!downloads/.gitkeep
+.env
+*.log
+reference/
+frontend/node_modules
+frontend/dist
+hianime-API/
+anime-vault/server/node_modules
+consumet-api/node_modules
+.DS_Store
+*.md
+!README.md
